@@ -481,6 +481,21 @@ server.registerTool(
   }
 );
 
+server.registerTool(
+  "get_database_record",
+  {
+    title: "Get the Supabase table and this event's row",
+    description: "Returns supabase/schema.sql (run it once to create the events table) and the event's row from the latest event page build, so you can save it with your own Supabase connector. Keep published=false: publishing happens only when the lead clicks Publish in the dashboard.",
+    inputSchema: {},
+  },
+  async () => {
+    const schema = readIfExists("supabase/schema.sql") || "(supabase/schema.sql is missing)";
+    const row = readIfExists("event-page/output/supabase-row.json");
+    if (!row) return text("No event page built yet. Call run_production first, then ask again.\n\nSCHEMA:\n" + schema);
+    return text("SCHEMA (run once):\n" + schema + "\n\nROW to upsert into public.events (on conflict slug):\n" + row);
+  }
+);
+
 // ---------- start ----------
 // Two ways to run:
 //   node grok-bot/server.js            -> stdio, for a client on this computer (Claude Code, Cursor)
