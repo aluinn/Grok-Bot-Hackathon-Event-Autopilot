@@ -18,7 +18,9 @@ function readVoiceSamples() {
   return fs.readdirSync(VOICE_DIR)
     .filter((f) => f.endsWith(".md") || f.endsWith(".txt"))
     .filter((f) => f.toLowerCase() !== "readme.md")
-    .map((f) => `--- ${f} ---\n${fs.readFileSync(path.join(VOICE_DIR, f), "utf8").trim()}`)
+    .map((f) => fs.readFileSync(path.join(VOICE_DIR, f), "utf8").trim())
+    .filter((text) => (text.match(/PASTE HERE/g) || []).length < 3) // skip the unfilled template
+    .map((text, i) => `--- sample ${i + 1} ---\n${text.replace(/PASTE HERE/g, "")}`)
     .join("\n\n")
     .slice(0, 12000); // keep the prompt a sensible size
 }

@@ -20,7 +20,8 @@ function loadEnv() {
 
 // Ask Grok a question and get a JSON object back.
 // `system` says who Grok is for this job, `user` is the request. Both plain strings.
-async function askGrokForJson({ system, user }) {
+// `extra` (optional) is an object merged into the request body, e.g. xAI's search_parameters.
+async function askGrokForJson({ system, user, extra = {} }) {
   loadEnv();
   const key = process.env.XAI_API_KEY;
   if (!key) throw new Error("XAI_API_KEY is missing. Put it in the .env file at the project root (see .env.example).");
@@ -36,6 +37,7 @@ async function askGrokForJson({ system, user }) {
         { role: "system", content: system },
         { role: "user", content: user },
       ],
+      ...extra,
     }),
   });
   if (!response.ok) {

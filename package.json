@@ -9,7 +9,7 @@
     "intake:luma": "node intake/from-luma.js",
     "intake:text": "node intake/from-text.js",
     "copy": "node copy-generator/generate.js",
-    "visuals": "node visuals/render.js",
+    "visuals": "node promo-and-approval-ui/templates/render.js shared/event.json",
     "runsheet": "node run-sheet/build.js",
     "sponsors": "node sponsors/find.js",
     "outreach": "node sponsors/draft-outreach.js",

@@ -124,7 +124,7 @@ server.registerTool(
     inputSchema: {},
   },
   async () => {
-    const run = runScript("visuals/render.js");
+    const run = runScript("promo-and-approval-ui/templates/render.js", ["shared/event.json"]);
     const pngs = listPngs();
     const list = pngs.length
       ? pngs.map((f) => `${FILES.pngDir}/${f}`).join("\n")

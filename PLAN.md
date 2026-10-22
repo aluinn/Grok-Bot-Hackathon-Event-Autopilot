@@ -28,13 +28,14 @@ Tiago builds the engine behind the screen; aluinn owns the screen the lead uses 
 | Promo and Approval UI (started) | aluinn | Platform-style previews, edit, Approve; shows the PNGs and hours saved | `promo-and-approval-ui/` |
 | Event intake (Luma link or one line to event.json) | Tiago | Pasting any Luma link fills event.json correctly | `intake/` |
 | Copy generator (Grok to promo.json) | Tiago | Page copy, newsletter and 3 posts in the community's voice | `copy-generator/` |
-| Visual templates + Puppeteer renderer | Tiago | 3 on-brand templates (poster, square post, story) rendered to PNG | `visuals/` |
+| Visual templates + Puppeteer renderer (done) | aluinn | 3 on-brand templates (square, wide, story) rendered to PNG | `promo-and-approval-ui/templates/` |
+| Sponsor finder + outreach drafts | Tiago | 20 partners with public contact emails via Grok live search, one draft email each, never sent | `sponsors/` |
 | Sending after Approve | Tiago | The UI's Approve button posts to Discord and creates the Ghost draft | `sending/` |
 | Grok Bot + Cognee wiring (MCP server) | Tiago | Grok Bot can make, write and render an event by chat | `grok-bot/` |
 | Run sheet + calendar invite | Tiago | Timed run sheet and an .ics file for the event | `run-sheet/` |
 | Brand (colours, fonts, logo) | aluinn | Done: brand/brand.md and logo.svg | `CLAUDE.md`, `brand/` |
 | Community voice samples | aluinn | 5-10 past event descriptions and posts, loaded into Cognee | `voice/` |
-| Hours-saved numbers | aluinn | Minutes per task from 3+ real leads on the night | `shared/hours.json` |
+| Hours-saved numbers | aluinn | Minutes per task from 3+ real leads on the night | `data/hours.json` |
 | Partner help on the night (Luma, Ghost, Notion, Grok) | aluinn | API keys and answers collected in the first hour | `.env` (never committed) |
 | Pitch, demo event, backup video | aluinn, Tiago reviews | 3-minute script rehearsed twice; recording saved | `demo/` |
 
@@ -55,8 +56,9 @@ shared/                 event.json, promo.json, hours.json (the contract)
 promo-and-approval-ui/  aluinn's review and Approve screen
 intake/                 Luma link or one line -> event.json
 copy-generator/         Grok -> promo.json
-visuals/                HTML/CSS templates + Puppeteer -> PNGs
-run-sheet/              run sheet + .ics (ical-generator)
+promo-and-approval-ui/templates/  HTML/CSS templates + Puppeteer -> PNGs (aluinn)
+run-sheet/              run sheet + .ics (hand-written, no library)
+sponsors/               sponsor shortlist + outreach drafts (Grok live search)
 sending/                runs only after Approve: Discord, Ghost, share links
 grok-bot/               MCP server so Grok Bot can drive the pipeline
 voice/                  past event texts, loaded into Cognee

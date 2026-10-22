@@ -19,7 +19,7 @@ const steps = [
   { name: isLuma ? "Read the Luma event" : "Turn the idea into an event (Grok)",
     cmd: isLuma ? ["intake/from-luma.js", input] : ["intake/from-text.js", input] },
   { name: "Write page copy, newsletter and posts (Grok)", cmd: ["copy-generator/generate.js"] },
-  { name: "Render the visuals (Puppeteer)", cmd: ["visuals/render.js"] },
+  { name: "Render the visuals (Puppeteer)", cmd: ["promo-and-approval-ui/templates/render.js", "shared/event.json"] },
   { name: "Build the run sheet and calendar file", cmd: ["run-sheet/build.js"] },
   { name: "Find potential sponsors (Grok)", cmd: ["sponsors/find.js"], optional: true },
   { name: "Draft sponsor outreach emails (Grok)", cmd: ["sponsors/draft-outreach.js"], optional: true },
