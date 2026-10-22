@@ -82,7 +82,7 @@ function buildCards() {
         <span class="num">0${i + 1}</span>
         <h2>${item.title}</h2>
         <span class="state">
-          <span class="dot"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+          <span class="dot"></span>
           <span class="t-pending">Pending review</span><span class="t-approved">Approved</span>
         </span>
       </div>
@@ -112,33 +112,46 @@ function drawCard(item) {
   body.firstChild.classList.add("fade-in");
 
   if (isEditing) {
-    buttons.appendChild(button("Save", "approve", () => saveEdit(item)));
+    buttons.appendChild(button("Save", "approve", () => saveEdit(item), "check"));
     buttons.appendChild(button("Cancel", "", () => setEditing(null)));
   } else {
     buttons.appendChild(button(approved ? "Approved" : "Approve", "approve", () => {
       setState(item.id, { approved: !approved });
       drawCard(item);
       updateProgress();
-    }));
+    }, "check"));
     // The send buttons only exist once the item is approved (the server refuses otherwise too)
     if (approved && SEND_LABELS[item.id]) {
-      buttons.appendChild(button(SEND_LABELS[item.id], "send", (e) => sendItem(item, e.target)));
+      buttons.appendChild(button(SEND_LABELS[item.id], "send", (e) => sendItem(item, e.currentTarget)));
     }
     if (!item.isImages) {
       // Approve (and send) on the left; the quieter tools on the right
       const spacer = document.createElement("span");
       spacer.className = "spacer";
       buttons.appendChild(spacer);
-      buttons.appendChild(button("Edit", "", () => setEditing(item.id)));
-      buttons.appendChild(button("Regenerate", "", () => regenerate(item)));
-      buttons.appendChild(button("Copy", "", (e) => copyText(item, e.target)));
+      buttons.appendChild(button("Edit", "", () => setEditing(item.id), "pencil"));
+      buttons.appendChild(button("Regenerate", "", () => regenerate(item), "refresh"));
+      buttons.appendChild(button("Copy", "", (e) => copyText(item, e.currentTarget), "copy"));
     }
   }
 }
 
-function button(label, className, onClick) {
+// Small line icons (inline SVG, all drawn the same way, no icon library)
+const ICONS = {
+  check: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  pencil: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17z"/><path d="M14.5 7.5l3 3"/></svg>',
+  refresh: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.5-4.2L4 9"/><path d="M4 4v5h5"/><path d="M4 13a8 8 0 0 0 14.5 4.2L20 15"/><path d="M20 20v-5h-5"/></svg>',
+  copy: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"/></svg>',
+};
+
+// The label sits in its own span so an icon can sit before it and survive label changes (like "Copied!")
+function button(label, className, onClick, icon) {
   const b = document.createElement("button");
-  b.textContent = label;
+  if (icon) b.innerHTML = ICONS[icon];
+  const text = document.createElement("span");
+  text.className = "btn-label";
+  text.textContent = label;
+  b.appendChild(text);
   if (className) b.className = className;
   b.addEventListener("click", onClick);
   return b;
@@ -344,8 +357,9 @@ function copyText(item, buttonEl) {
   const c = current(item);
   const text = item.id === "newsletter" ? `Subject: ${c.subject}\n\n${c.body}` : c.text;
   navigator.clipboard.writeText(text);
-  buttonEl.textContent = "Copied!";
-  setTimeout(() => (buttonEl.textContent = "Copy"), 1500);
+  const label = buttonEl.querySelector(".btn-label") || buttonEl;
+  label.textContent = "Copied!";
+  setTimeout(() => (label.textContent = "Copy"), 1500);
 }
 
 // ---------- The checklist on the left ----------
