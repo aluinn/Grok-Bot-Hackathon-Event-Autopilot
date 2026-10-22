@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Event Autopilot: Approve</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Reminder that nothing leaves this page without a click on Approve -->
+  <div class="banner">Nothing is sent until you approve it.</div>
+
+  <main>
+    <header>
+      <h1 id="event-name">Loading...</h1>
+      <p id="event-details" class="muted"></p>
+    </header>
+
+    <section class="progress">
+      <div class="progress-label" id="progress-label"></div>
+      <div class="bar"><div class="bar-fill" id="bar-fill"></div></div>
+    </section>
+
+    <section id="cards"></section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

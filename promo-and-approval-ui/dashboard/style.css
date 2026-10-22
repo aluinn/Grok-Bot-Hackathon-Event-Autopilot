@@ -1,0 +1,89 @@
+/* Brand: background #0B0B0F, cards #16161D, accent #FF5A1F, text #F5F5F7, muted #9A9AA5. No gradients or shadows. */
+:root {
+  --bg: #0B0B0F;
+  --card: #16161D;
+  --accent: #FF5A1F;
+  --text: #F5F5F7;
+  --muted: #9A9AA5;
+  --green: #2FBF71;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Inter", sans-serif;
+  font-size: 18px;
+  line-height: 1.55;
+}
+
+h1, h2 { font-family: "Space Grotesk", sans-serif; margin: 0; }
+h1 { font-size: 48px; line-height: 1.1; }
+h2 { font-size: 26px; }
+.muted { color: var(--muted); }
+
+.banner {
+  background: var(--accent);
+  color: var(--bg);
+  text-align: center;
+  font-weight: 600;
+  padding: 12px 16px;
+}
+
+main { max-width: 860px; margin: 0 auto; padding: 40px 20px 80px; }
+header { margin-bottom: 32px; }
+header p { font-size: 20px; margin: 12px 0 0; }
+
+/* Progress bar */
+.progress { margin-bottom: 32px; }
+.progress-label { font-family: "Space Grotesk", sans-serif; font-size: 22px; font-weight: 700; margin-bottom: 10px; }
+.bar { height: 12px; background: var(--card); border-radius: 6px; overflow: hidden; }
+.bar-fill { height: 100%; width: 0; background: var(--accent); transition: width 0.3s; }
+.bar-fill.done { background: var(--green); }
+
+/* Cards */
+.card { background: var(--card); border: 2px solid var(--card); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+.card.approved { border-color: var(--green); }
+.card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.tick { color: var(--green); font-weight: 700; font-size: 18px; }
+
+.content { white-space: pre-wrap; margin: 0 0 20px; }
+.content.loading { color: var(--muted); }
+.label { color: var(--muted); font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 4px; }
+.subject { font-weight: 600; margin: 0 0 16px; }
+
+textarea, input[type="text"] {
+  width: 100%;
+  background: var(--bg);
+  color: var(--text);
+  border: 2px solid var(--accent);
+  border-radius: 8px;
+  padding: 12px;
+  font: inherit;
+  margin-bottom: 16px;
+}
+textarea { min-height: 160px; resize: vertical; }
+
+/* Buttons */
+.buttons { display: flex; flex-wrap: wrap; gap: 10px; }
+button, .button {
+  font: inherit;
+  font-weight: 600;
+  background: transparent;
+  color: var(--text);
+  border: 2px solid var(--muted);
+  border-radius: 8px;
+  padding: 10px 18px;
+  cursor: pointer;
+  text-decoration: none;
+}
+button:hover, .button:hover { border-color: var(--text); }
+button:disabled { opacity: 0.4; cursor: not-allowed; }
+button.approve { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+.card.approved button.approve { background: var(--green); border-color: var(--green); }
+
+/* Promo images */
+.images { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 20px; }
+.images img { width: 100%; border-radius: 8px; display: block; }
