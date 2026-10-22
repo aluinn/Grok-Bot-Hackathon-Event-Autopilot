@@ -104,12 +104,16 @@ function drawCard(item) {
 
   const body = card.querySelector(".card-body");
   const buttons = card.querySelector(".buttons");
-  body.replaceChildren();
   buttons.replaceChildren();
 
-  if (item.isImages) body.appendChild(buildImages());
-  else body.appendChild(isEditing ? buildEditor(item) : buildReadOnly(item));
-  body.firstChild.classList.add("fade-in");
+  if (isPost(item)) {
+    drawPostBody(item, body, isEditing);
+  } else {
+    body.replaceChildren();
+    if (item.isImages) body.appendChild(buildImages());
+    else body.appendChild(isEditing ? buildEditor(item) : buildReadOnly(item));
+    body.firstChild.classList.add("fade-in");
+  }
 
   if (isEditing) {
     buttons.appendChild(button("Save", "approve", () => saveEdit(item), "check"));
@@ -167,6 +171,75 @@ function button(label, className, onClick, icon) {
   return b;
 }
 
+// ---------- Live post previews (LinkedIn, WhatsApp, Discord) ----------
+// These three cards show the real preview pages from templates/previews/ inside a frame.
+// The frame is created ONCE per card and then only sent messages. If we rebuilt it every time you
+// approved or edited, it would reload and flicker.
+const POST_IDS = ["linkedin", "whatsapp", "discord"];
+function isPost(item) {
+  return POST_IDS.includes(item.id);
+}
+
+function previewFrame(item) {
+  return document.querySelector(`#card-${item.id} .post-preview iframe`);
+}
+
+// The event image shown with the post: the wide poster if there is one, otherwise the first image, otherwise none
+function previewImageUrl() {
+  const file = imageFiles.find((f) => f.includes("wide")) || imageFiles[0];
+  return file ? "/output/" + encodeURIComponent(file) : "";
+}
+
+// Tell a preview frame what to show. (If the frame hasn't finished loading yet, its load handler sends this.)
+function sendPreview(item) {
+  const frame = previewFrame(item);
+  if (!frame || frame.dataset.loaded !== "yes") return;
+  frame.contentWindow.postMessage(
+    { type: "preview-update", post: current(item).text, imageUrl: previewImageUrl(), event },
+    location.origin
+  );
+}
+
+function buildPostPreview(item) {
+  const wrap = document.createElement("div");
+  wrap.className = "post-preview " + item.id;
+  wrap.innerHTML = `<p class="preview-tag"></p><div class="frame-box"><iframe></iframe></div>`;
+  wrap.querySelector(".preview-tag").textContent = PREVIEW_TAGS[item.id];
+  const frame = wrap.querySelector("iframe");
+  frame.title = PREVIEW_TAGS[item.id];
+  frame.addEventListener("load", () => { frame.dataset.loaded = "yes"; sendPreview(item); });
+  frame.src = "/templates/previews/" + item.id + "-preview.html";
+  return wrap;
+}
+
+// The body of a post card: the preview frame (made once), or the text editor while you are editing
+function drawPostBody(item, body, isEditing) {
+  let host = body.querySelector(".post-preview");
+  if (!host) {
+    body.replaceChildren();
+    host = buildPostPreview(item);
+    host.classList.add("fade-in");
+    body.appendChild(host);
+  }
+  body.querySelectorAll(".panel").forEach((n) => n.remove()); // an old editor or loading bars
+  host.hidden = isEditing; // hiding keeps the frame alive, so nothing reloads
+  if (isEditing) {
+    const editor = buildEditor(item);
+    editor.classList.add("fade-in");
+    body.appendChild(editor);
+  } else {
+    sendPreview(item);
+  }
+}
+
+// A frame tells us how tall its page is; make the frame exactly that tall so it has no inner scrollbar
+window.addEventListener("message", (e) => {
+  if (e.origin !== location.origin || !e.data || e.data.type !== "preview-height") return;
+  document.querySelectorAll(".post-preview iframe").forEach((f) => {
+    if (f.contentWindow === e.source) f.style.height = e.data.height + "px";
+  });
+});
+
 // Small labels above each preview, and who "posts" it in the mock-up
 const PREVIEW_TAGS = {
   page_copy: "Event page",
@@ -176,13 +249,9 @@ const PREVIEW_TAGS = {
   discord: "Discord preview",
 };
 
-// Show each item roughly as it will look where it ends up (all text is placed safely with textContent)
+// The page copy and the newsletter, shown as plain readable blocks (all text is placed safely with textContent)
 function buildReadOnly(item) {
   const c = current(item);
-  const host = (event.hosts && event.hosts[0]) || "Event host";
-  const initials = host.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
-  const time = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-
   const wrap = document.createElement("div");
   wrap.innerHTML = `<p class="preview-tag"></p><div class="panel"></div>`;
   wrap.querySelector(".preview-tag").textContent = PREVIEW_TAGS[item.id];
@@ -192,25 +261,10 @@ function buildReadOnly(item) {
     panel.innerHTML = `<p class="label">Subject</p><p class="subject"></p><p class="content"></p>`;
     panel.querySelector(".subject").textContent = c.subject;
     panel.querySelector(".content").textContent = c.body;
-  } else if (item.id === "linkedin") {
-    panel.innerHTML = `<div class="p-head"><span class="avatar"></span><div><div class="p-name"></div><div class="p-meta">Event host · Just now</div></div></div>
-      <p class="content"></p><div class="p-actions"><span>Like</span><span>Comment</span><span>Repost</span><span>Send</span></div>`;
-  } else if (item.id === "whatsapp") {
-    panel.innerHTML = `<div class="bubble"><p class="content"></p><span class="time"></span></div>`;
-    panel.querySelector(".time").textContent = time;
-  } else if (item.id === "discord") {
-    panel.innerHTML = `<div class="discord-row"><span class="avatar"></span><div><div class="p-name"><span class="who"></span><span class="stamp"></span></div><p class="content"></p></div></div>`;
-    panel.querySelector(".who").textContent = host;
-    panel.querySelector(".stamp").textContent = "Today at " + time;
   } else {
     panel.innerHTML = `<p class="content"></p>`;
+    panel.querySelector(".content").textContent = c.text;
   }
-
-  if (item.id !== "newsletter") panel.querySelector(".content").textContent = c.text;
-  const avatar = panel.querySelector(".avatar");
-  if (avatar) avatar.textContent = initials;
-  const name = panel.querySelector(".p-name");
-  if (name && item.id === "linkedin") name.textContent = host;
   return wrap;
 }
 
@@ -301,7 +355,10 @@ function saveEdit(item) {
 function regenerate(item) {
   // Show calm pulsing bars while we "think", then swap in the alternative text
   const body = document.querySelector(`#card-${item.id} .card-body`);
-  body.innerHTML = `<div class="panel skeleton fade-in"><span></span><span></span><span></span></div>`;
+  const bars = `<div class="panel skeleton fade-in"><span></span><span></span><span></span></div>`;
+  const host = body.querySelector(".post-preview");
+  if (host) { host.hidden = true; body.insertAdjacentHTML("beforeend", bars); } // keep the preview frame alive
+  else body.innerHTML = bars;
 
   // Save the new text, un-approve the card (the lead must look again) and redraw it
   const useText = (alt) => {
