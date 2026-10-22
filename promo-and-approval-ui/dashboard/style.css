@@ -198,6 +198,16 @@ h1 { font-size: clamp(36px, 5.8vw, 88px); line-height: 1.02; letter-spacing: -0.
 .post-preview.discord .frame-box { max-width: 680px; }
 .post-preview iframe { display: block; width: 100%; height: 360px; border: 0; background: var(--bg); color-scheme: dark; } /* app.js sets the real height */
 
+/* The live previews of the real event page and the real email: a browser-style window with the page inside */
+.doc-preview .frame-box { border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; overflow: hidden; }
+.doc-preview.newsletter .frame-box { max-width: 680px; }
+.doc-preview .chrome { display: flex; align-items: center; gap: 6px; padding: 10px 14px; background: rgba(255, 255, 255, 0.04); border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
+.doc-preview .chrome i { width: 9px; height: 9px; border-radius: 50%; background: rgba(255, 255, 255, 0.16); }
+.doc-preview .chrome-title { margin-left: 8px; font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.doc-preview .scaler { overflow: hidden; } /* the event page is scaled down inside this */
+.doc-preview iframe { display: block; width: 100%; height: 560px; border: 0; background: var(--bg); color-scheme: dark; } /* app.js sets the real size */
+.preview-note { margin: 12px 2px 0; font-size: 13px; line-height: 1.5; color: var(--muted); }
+
 /* Waiting state for Regenerate: calm pulsing bars (not a gradient shimmer) */
 .skeleton span { display: block; height: 12px; background: var(--line); border-radius: 6px; margin-bottom: 12px; animation: pulse 1.1s ease-in-out infinite; }
 .skeleton span:nth-child(1) { width: 100%; }

@@ -106,8 +106,8 @@ function drawCard(item) {
   const buttons = card.querySelector(".buttons");
   buttons.replaceChildren();
 
-  if (isPost(item)) {
-    drawPostBody(item, body, isEditing);
+  if (isLive(item)) {
+    drawLiveBody(item, body, isEditing);
   } else {
     body.replaceChildren();
     if (item.isImages) body.appendChild(buildImages());
@@ -212,12 +212,153 @@ function buildPostPreview(item) {
   return wrap;
 }
 
-// The body of a post card: the preview frame (made once), or the text editor while you are editing
-function drawPostBody(item, body, isEditing) {
-  let host = body.querySelector(".post-preview");
+// ---------- Live previews of the real event page and the real email ----------
+// The Event page card shows Tiago's real page (event-page/), the Newsletter card shows the real branded email.
+// Both are shown in a locked-down frame (no scripts can run in it), and both show the lead's CURRENT text,
+// so what you approve is what gets published or sent.
+const DOC_IDS = ["page_copy", "newsletter"];
+function isDoc(item) {
+  return DOC_IDS.includes(item.id);
+}
+function isLive(item) {
+  return isPost(item) || isDoc(item);
+}
+const LIVE_PREVIEW = ".post-preview, .doc-preview"; // the preview of any live card
+
+const DOC_NOTES = {
+  page_copy: "This is the real event page. Only the About text is your copy; the programme comes from the run sheet.",
+  newsletter: "This is the email as it will be sent. The poster and the Reserve button go live once the event page is published.",
+};
+
+function docFrame(item) {
+  return document.querySelector(`#card-${item.id} .doc-preview iframe`);
+}
+
+function escapeHtml(text) {
+  return String(text == null ? "" : text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+// A short message shown inside the frame when the page or email can't be shown
+function noticePage(message) {
+  return `<!DOCTYPE html><body style="margin:0;padding:32px;background:#0B0B0F;color:#9A9AA5;font:16px/1.6 system-ui,sans-serif">${escapeHtml(message)}</body>`;
+}
+
+// The built event page, with its About section showing the lead's current copy
+async function eventPageHtml(copy) {
+  const response = await fetch("/event-page/", { cache: "no-store" });
+  if (!response.ok) throw new Error("The event page hasn't been built yet. It appears when the autopilot runs.");
+  const doc = new DOMParser().parseFromString(await response.text(), "text/html"); // parsing never runs scripts
+  const about = [...doc.querySelectorAll("section")].find((sec) => (sec.querySelector("h2")?.textContent || "").trim() === "About");
+  if (!about) return "<!DOCTYPE html>" + doc.documentElement.outerHTML; // the page layout changed: show it as built
+
+  about.querySelectorAll("p").forEach((p) => p.remove());
+  const paragraphs = String(copy || "").trim().split(/\n\s*\n/).map((t) => t.trim()).filter(Boolean);
+  if (!paragraphs.length) paragraphs.push("No page copy written yet.");
+  paragraphs.forEach((text) => {
+    const p = doc.createElement("p");
+    text.split("\n").forEach((line, i) => {
+      if (i) p.appendChild(doc.createElement("br"));
+      p.appendChild(doc.createTextNode(line)); // text node: safe even if the copy contains < or &
+    });
+    about.appendChild(p);
+  });
+  return "<!DOCTYPE html>" + doc.documentElement.outerHTML;
+}
+
+// The branded email for the lead's current subject and body (the server builds it; nothing is sent)
+async function newsletterHtml(c) {
+  const response = await fetch("/api/preview/newsletter", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ subject: c.subject, body: c.body }),
+  });
+  const data = await response.json();
+  if (data.error) throw new Error(data.error);
+  return data.html;
+}
+
+// Show the current text in the frame. Does nothing if the text hasn't changed since last time,
+// so approving a card never reloads its preview.
+async function updateDocPreview(item) {
+  const frame = docFrame(item);
+  if (!frame) return;
+  const c = current(item);
+  const key = JSON.stringify(c);
+  if (frame.dataset.key === key) return;
+  frame.dataset.key = key;
+  let html;
+  try {
+    html = item.id === "newsletter" ? await newsletterHtml(c) : await eventPageHtml(c.text);
+  } catch (err) {
+    html = noticePage(err.message);
+  }
+  if (frame.dataset.key === key) frame.srcdoc = html; // ignore an answer that arrives after a newer edit
+}
+
+// Size the preview frame to its content.
+// - The email: as tall as the email, up to a limit (longer emails scroll inside the frame).
+// - The event page: laid out at desktop width and scaled down to fit the card, so the header, the facts and the
+//   About text are all visible together. On a phone (a narrow card) it lays out normally instead of shrinking to nothing.
+const PAGE_DESKTOP_WIDTH = 1000;
+function fitDocFrame(frame, item) {
+  try {
+    const doc = frame.contentDocument;
+    const apply = () => {
+      if (item.id !== "page_copy") {
+        frame.style.height = Math.min(doc.documentElement.scrollHeight + 2, 720) + "px";
+        return;
+      }
+      const box = frame.parentElement; // the .scaler around the frame
+      const cardWidth = box.clientWidth;
+      const layoutWidth = cardWidth >= 700 ? PAGE_DESKTOP_WIDTH : cardWidth;
+      const scale = cardWidth / layoutWidth;
+      frame.style.width = layoutWidth + "px";
+      frame.style.transform = `scale(${scale})`;
+      frame.style.transformOrigin = "0 0";
+      const shown = Math.min(doc.documentElement.scrollHeight * scale, 640); // how tall the window looks on screen
+      box.style.height = shown + "px";
+      frame.style.height = shown / scale + "px";
+    };
+    apply();
+    if (doc.fonts) doc.fonts.ready.then(apply);
+  } catch (e) { /* if the frame can't be measured, it keeps its default height */ }
+}
+
+function buildDocPreview(item) {
+  const wrap = document.createElement("div");
+  wrap.className = "doc-preview " + item.id;
+  wrap.innerHTML = `<p class="preview-tag"></p>
+    <div class="frame-box"><div class="chrome"><i></i><i></i><i></i><span class="chrome-title"></span></div><div class="scaler"><iframe></iframe></div></div>
+    <p class="preview-note"></p>`;
+  wrap.querySelector(".preview-tag").textContent = PREVIEW_TAGS[item.id];
+  wrap.querySelector(".chrome-title").textContent = PREVIEW_TAGS[item.id];
+  wrap.querySelector(".preview-note").textContent = DOC_NOTES[item.id];
+  const frame = wrap.querySelector("iframe");
+  frame.title = PREVIEW_TAGS[item.id];
+  // No "allow-scripts": nothing inside can run code. Links may open in a new tab.
+  frame.setAttribute("sandbox", "allow-same-origin allow-popups allow-popups-to-escape-sandbox");
+  frame.addEventListener("load", () => fitDocFrame(frame, item));
+  // If the window is resized, fit the page to the new card width
+  let lastWidth = 0;
+  new ResizeObserver(() => {
+    const width = wrap.querySelector(".scaler").clientWidth;
+    if (width !== lastWidth) { lastWidth = width; if (frame.dataset.key) fitDocFrame(frame, item); }
+  }).observe(wrap.querySelector(".scaler"));
+  return wrap;
+}
+
+// Tell a card's preview to show the current text
+function updatePreview(item) {
+  if (isPost(item)) sendPreview(item);
+  else updateDocPreview(item);
+}
+
+// The body of a card: its live preview (made once), or the text editor while you are editing
+function drawLiveBody(item, body, isEditing) {
+  let host = body.querySelector(LIVE_PREVIEW);
   if (!host) {
     body.replaceChildren();
-    host = buildPostPreview(item);
+    host = isPost(item) ? buildPostPreview(item) : buildDocPreview(item);
     host.classList.add("fade-in");
     body.appendChild(host);
   }
@@ -228,7 +369,7 @@ function drawPostBody(item, body, isEditing) {
     editor.classList.add("fade-in");
     body.appendChild(editor);
   } else {
-    sendPreview(item);
+    updatePreview(item);
   }
 }
 
@@ -356,7 +497,7 @@ function regenerate(item) {
   // Show calm pulsing bars while we "think", then swap in the alternative text
   const body = document.querySelector(`#card-${item.id} .card-body`);
   const bars = `<div class="panel skeleton fade-in"><span></span><span></span><span></span></div>`;
-  const host = body.querySelector(".post-preview");
+  const host = body.querySelector(LIVE_PREVIEW);
   if (host) { host.hidden = true; body.insertAdjacentHTML("beforeend", bars); } // keep the preview frame alive
   else body.innerHTML = bars;
 

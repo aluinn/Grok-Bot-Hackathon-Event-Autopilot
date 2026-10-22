@@ -117,6 +117,11 @@ http.createServer((req, res) => {
       return res.end(err.message);
     }
   }
+  // POST /api/preview/newsletter  {subject, body}  — the branded email for the lead's CURRENT text, for the preview in the
+  // newsletter card. It only builds the HTML (with the same builder as /newsletter/); nothing is sent.
+  if (req.method === "POST" && url === "/api/preview/newsletter") {
+    return handleJson(req, res, async (data) => ({ html: buildNewsletterHtml({ subject: String(data.subject ?? ""), body: String(data.body ?? "") }) }));
+  }
   // POST /api/share-link  — a pre-filled WhatsApp or LinkedIn message the lead sends by hand
   if (req.method === "POST" && url === "/api/share-link") {
     return handleJson(req, res, async (data) => ({
