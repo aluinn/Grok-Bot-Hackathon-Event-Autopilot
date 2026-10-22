@@ -111,6 +111,10 @@ function buildCard(item) {
       setState(item.id, { approved: !approved });
       render();
     }));
+    // The send buttons only exist once the item is approved (the server refuses otherwise too)
+    if (approved && SEND_LABELS[item.id]) {
+      buttons.appendChild(button(SEND_LABELS[item.id], "send", (e) => sendItem(item, e.target)));
+    }
     if (!item.isImages) {
       buttons.appendChild(button("Edit", "", () => { editing = item.id; render(); }));
       buttons.appendChild(button("Regenerate", "", () => regenerate(item)));
@@ -200,14 +204,62 @@ function regenerate(item) {
   content.textContent = "Regenerating...";
   content.classList.add("loading");
 
-  // TODO: Replace this timer + dummy text with the real Grok call.
-  // The real call should return new text for this item, which we save with setState() below.
-  setTimeout(() => {
-    const alt = DUMMY_ALTERNATIVES[item.id];
-    if (item.id === "newsletter") setState(item.id, { subject: alt.subject, body: alt.body, approved: false });
-    else setState(item.id, { text: alt, approved: false });
-    render();
-  }, 1200);
+  // Ask Grok (through the server) for a fresh version. If Grok is not set up, fall back to the dummy text.
+  const c = current(item);
+  fetch("/api/regenerate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id: item.id, current: item.id === "newsletter" ? c : c.text }),
+  })
+    .then((r) => r.json())
+    .then((data) => {
+      if (data.error) throw new Error(data.error);
+      const alt = data.result;
+      if (item.id === "newsletter") setState(item.id, { subject: alt.subject, body: alt.body, approved: false });
+      else setState(item.id, { text: alt, approved: false });
+      render();
+    })
+    .catch((err) => {
+      console.warn("Grok regenerate failed, using the dummy text:", err.message);
+      const alt = DUMMY_ALTERNATIVES[item.id];
+      if (item.id === "newsletter") setState(item.id, { subject: alt.subject, body: alt.body, approved: false });
+      else setState(item.id, { text: alt, approved: false });
+      render();
+    });
+}
+
+// ---------- Sending (only after Approve) ----------
+// What the send button says for each item. Items not listed here have no send button.
+const SEND_LABELS = {
+  discord: "Post to Discord",
+  newsletter: "Save Ghost draft",
+  whatsapp: "Open in WhatsApp",
+  linkedin: "Open in LinkedIn",
+};
+
+async function sendItem(item, buttonEl) {
+  const c = current(item);
+  const approved = !!state[item.id]?.approved;
+  if (!approved) return alert("Approve this item first."); // belt and braces: the server refuses too
+  buttonEl.textContent = "Working...";
+  try {
+    if (item.id === "whatsapp" || item.id === "linkedin") {
+      // These platforms don't allow posting for you, so we open a pre-filled message to send by hand
+      const r = await (await fetch("/api/share-link", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ channel: item.id, text: c.text }) })).json();
+      window.open(r.url, "_blank");
+      buttonEl.textContent = SEND_LABELS[item.id];
+      return;
+    }
+    const channel = item.id === "newsletter" ? "ghost" : "discord";
+    const payload = item.id === "newsletter" ? { subject: c.subject, body: c.body, approved: true } : { text: c.text, approved: true };
+    const r = await (await fetch("/api/send/" + channel, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })).json();
+    if (r.error) throw new Error(r.error);
+    setState(item.id, { sentAt: new Date().toISOString() });
+    buttonEl.textContent = channel === "ghost" ? "Draft saved in Ghost" : "Posted to Discord";
+  } catch (err) {
+    buttonEl.textContent = SEND_LABELS[item.id];
+    alert("Could not send: " + err.message);
+  }
 }
 
 function copyText(item, buttonEl) {

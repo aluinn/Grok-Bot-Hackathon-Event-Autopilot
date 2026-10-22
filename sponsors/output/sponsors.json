@@ -1,0 +1,50 @@
+{
+  "event": "London Builders Night: Ship It in One Evening",
+  "sponsors": [
+    {
+      "name": "Example Coworking",
+      "website": "https://example-coworking.example",
+      "why_fit": "A Shoreditch coworking space whose members are exactly the makers and founders this builders night attracts.",
+      "tier": "venue",
+      "contact_email": "events@example-coworking.example",
+      "contact_page": "https://example-coworking.example/events",
+      "confidence": "high"
+    },
+    {
+      "name": "Example Cloud",
+      "website": "https://example-cloud.example",
+      "why_fit": "Gives builders free hosting credits and wants to meet people shipping side projects in one evening.",
+      "tier": "tooling",
+      "contact_email": "community@example-cloud.example",
+      "contact_page": "https://example-cloud.example/community",
+      "confidence": "high"
+    },
+    {
+      "name": "Example Brewing Co",
+      "website": "https://example-brewing.example",
+      "why_fit": "A local East London brewery that already supplies drinks for community meetups of 50-100 people.",
+      "tier": "food & drink",
+      "contact_email": "hello@example-brewing.example",
+      "contact_page": "",
+      "confidence": "medium"
+    },
+    {
+      "name": "Example Makers Collective",
+      "website": "https://example-makers.example",
+      "why_fit": "A London maker community that cross-promotes events like this one to its own newsletter.",
+      "tier": "community",
+      "contact_email": "",
+      "contact_page": "https://example-makers.example/partner",
+      "confidence": "medium"
+    },
+    {
+      "name": "Example Talent",
+      "website": "https://example-talent.example",
+      "why_fit": "A London tech recruiter looking to meet 80+ designers and engineers who build things in their spare time.",
+      "tier": "recruiting",
+      "contact_email": "partnerships@example-talent.example",
+      "contact_page": "",
+      "confidence": "low"
+    }
+  ]
+}

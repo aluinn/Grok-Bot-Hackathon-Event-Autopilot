@@ -83,6 +83,7 @@ button:hover, .button:hover { border-color: var(--text); }
 button:disabled { opacity: 0.4; cursor: not-allowed; }
 button.approve { background: var(--accent); border-color: var(--accent); color: var(--bg); }
 .card.approved button.approve { background: var(--green); border-color: var(--green); }
+button.send { border-color: var(--green); color: var(--green); } /* only appears after Approve */
 
 /* Promo images */
 .images { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 20px; }
