@@ -224,6 +224,17 @@ async function runAutopilot({ input = "", mode = "full" } = {}, onUpdate = () =>
     finish("intake", e ? "done" : "error", e ? { summary: "Written by Grok Bot: " + eventSummary().summary, output: eventSummary().output } : { note: "shared/event.json is missing. Ask Grok Bot to call save_event." });
     finish("memory", "done", { summary: "Written by Grok Bot (it read the memory itself)" });
     finish("copy", p ? "done" : "error", p ? { summary: "Written by Grok Bot. " + copySummary().summary, output: copySummary().output } : { note: "shared/promo.json is missing. Ask Grok Bot to call save_promo." });
+    // If Grok Bot already researched sponsors and wrote outreach for THIS event (save_sponsors / save_outreach),
+    // count them as done instead of calling the xAI API again
+    const s = readJson("sponsors/output/sponsors.json");
+    if (e && s && s.event === e.name && (s.sponsors || []).length) {
+      finish("sponsors", "done", { summary: "Found by Grok Bot: " + sponsorsSummary().summary, output: sponsorsSummary().output });
+      const allMd = path.join(ROOT, "sponsors", "output", "outreach", "ALL.md");
+      if (fs.existsSync(allMd) && fs.readFileSync(allMd, "utf8").includes(e.name)) {
+        const count = (fs.readFileSync(allMd, "utf8").match(/^- \[/gm) || []).length;
+        finish("outreach", "done", { summary: `Written by Grok Bot: ${count} drafts, nothing sent`, output: { type: "text", value: "sponsors/output/outreach/ALL.md" } });
+      }
+    }
   }
   publish();
 

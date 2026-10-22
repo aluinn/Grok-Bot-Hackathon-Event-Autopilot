@@ -125,7 +125,12 @@ async function main() {
   );
 }
 
-main().catch((err) => {
-  console.error("Sponsor search failed:", err.message);
-  process.exitCode = 1; // exit gently (process.exit right after a web request crashes Node on Windows)
-});
+// Run only from the command line; the Grok Bot server borrows the pieces below
+if (require.main === module) {
+  main().catch((err) => {
+    console.error("Sponsor search failed:", err.message);
+    process.exitCode = 1; // exit gently (process.exit right after a web request crashes Node on Windows)
+  });
+}
+
+module.exports = { SYSTEM, buildUserPrompt, cleanSponsor, toMarkdown, CONFIDENCE_ORDER };

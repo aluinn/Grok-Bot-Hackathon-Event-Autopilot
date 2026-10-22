@@ -397,6 +397,90 @@ server.registerTool(
   async () => runAutopilotCli(["--production"])
 );
 
+// ---------- Sponsors and outreach, done by Grok Bot itself (its own web search, no xAI API key here) ----------
+
+server.registerTool(
+  "get_sponsor_brief",
+  {
+    title: "Get the sponsor research brief",
+    description: "The rules and event details for finding sponsors. Use your own web search to find them (public business emails only, never personal ones), then call save_sponsors.",
+    inputSchema: { count: z.number().optional().describe("How many sponsors to find (default 20)") },
+  },
+  async ({ count }) => {
+    const { SYSTEM, buildUserPrompt } = require("../sponsors/find");
+    const event = JSON.parse(readIfExists(FILES.event) || "null");
+    if (!event) return text("There is no event yet. Call save_event or make_event first.");
+    return text(SYSTEM + "\n\n" + buildUserPrompt(event, count || 20) + "\n\nWhen done, call save_sponsors with the list.");
+  }
+);
+
+server.registerTool(
+  "save_sponsors",
+  {
+    title: "Save the sponsor shortlist",
+    description: "Save the sponsors Grok Bot found to sponsors/output (sponsors.json + sponsors.md). Research only; nobody is contacted.",
+    inputSchema: {
+      sponsors: z.array(z.object({
+        name: z.string(), website: z.string().optional(), why_fit: z.string().optional(),
+        tier: z.string().optional(), contact_email: z.string().optional(), contact_page: z.string().optional(),
+        confidence: z.string().optional(),
+      })),
+    },
+  },
+  async ({ sponsors }) => {
+    const { cleanSponsor, toMarkdown, CONFIDENCE_ORDER } = require("../sponsors/find");
+    const event = JSON.parse(readIfExists(FILES.event) || "{}");
+    const list = sponsors.map(cleanSponsor).filter((s) => s.name)
+      .sort((a, b) => CONFIDENCE_ORDER[a.confidence] - CONFIDENCE_ORDER[b.confidence]);
+    const dir = path.join(repoRoot, "sponsors", "output");
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, "sponsors.json"), JSON.stringify({ event: event.name, sponsors: list }, null, 2));
+    fs.writeFileSync(path.join(dir, "sponsors.md"), toMarkdown(list, event));
+    return text(`Saved ${list.length} sponsors (${list.filter((s) => s.contact_email).length} with a public email). Next: get_outreach_brief, then save_outreach.`);
+  }
+);
+
+server.registerTool(
+  "get_outreach_brief",
+  {
+    title: "Get the outreach email brief",
+    description: "The rules, event details and saved sponsors for writing one short sponsorship email each. Write them, then call save_outreach. Do not send them.",
+    inputSchema: {},
+  },
+  async () => {
+    const { SYSTEM, buildUserPrompt } = require("../sponsors/draft-outreach");
+    const event = JSON.parse(readIfExists(FILES.event) || "null");
+    const saved = JSON.parse(readIfExists("sponsors/output/sponsors.json") || "null");
+    if (!event || !saved || !saved.sponsors.length) return text("Save the event and the sponsors first (save_event, save_sponsors).");
+    return text(SYSTEM + "\n\n" + buildUserPrompt(event, saved.sponsors) + "\n\nWhen done, call save_outreach with the drafts.");
+  }
+);
+
+server.registerTool(
+  "save_outreach",
+  {
+    title: "Save sponsor outreach drafts",
+    description: "Save one email draft per sponsor to sponsors/output/outreach/ (each with a mailto link the lead opens to send by hand). Drafts only: this never sends. If the lead later asks you to send them from a connected email account, show the list first and only send after the lead explicitly confirms.",
+    inputSchema: { drafts: z.array(z.object({ name: z.string(), subject: z.string(), body: z.string() })) },
+  },
+  async ({ drafts }) => {
+    const { draftToMarkdown, slug } = require("../sponsors/draft-outreach");
+    const event = JSON.parse(readIfExists(FILES.event) || "{}");
+    const saved = JSON.parse(readIfExists("sponsors/output/sponsors.json") || '{"sponsors":[]}');
+    const dir = path.join(repoRoot, "sponsors", "output", "outreach");
+    fs.mkdirSync(dir, { recursive: true });
+    const all = [`# Sponsor outreach drafts for ${event.name}`, "", "Drafts only. Nothing was sent. Open each file, review, then send by hand.", ""];
+    for (const draft of drafts) {
+      const sponsor = saved.sponsors.find((s) => s.name === draft.name) || { name: draft.name };
+      const file = `${slug(draft.name)}.md`;
+      fs.writeFileSync(path.join(dir, file), draftToMarkdown(sponsor, draft));
+      all.push(`- [${draft.name}](${file}) - To: ${sponsor.contact_email || "no public email"} - Subject: ${draft.subject}`);
+    }
+    fs.writeFileSync(path.join(dir, "ALL.md"), all.join("\n") + "\n");
+    return text(`Saved ${drafts.length} outreach drafts to sponsors/output/outreach/ (see ALL.md). Nothing was sent.`);
+  }
+);
+
 // ---------- start ----------
 // Two ways to run:
 //   node grok-bot/server.js            -> stdio, for a client on this computer (Claude Code, Cursor)

@@ -143,7 +143,12 @@ async function main() {
   console.log(`Wrote ${written} outreach drafts${sample ? " [sample data]" : ""} to sponsors/output/outreach/ (see ALL.md). Drafts only. Nothing was sent.`);
 }
 
-main().catch((err) => {
-  console.error("Drafting failed:", err.message);
-  process.exitCode = 1; // exit gently (process.exit right after a web request crashes Node on Windows)
-});
+// Run only from the command line; the Grok Bot server borrows the pieces below
+if (require.main === module) {
+  main().catch((err) => {
+    console.error("Drafting failed:", err.message);
+    process.exitCode = 1; // exit gently (process.exit right after a web request crashes Node on Windows)
+  });
+}
+
+module.exports = { SYSTEM, buildUserPrompt, draftToMarkdown, slug };
