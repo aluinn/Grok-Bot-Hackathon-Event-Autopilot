@@ -12,6 +12,8 @@ Brand colours and fonts come from `brand/brand.md`. Each template includes the E
 
 There are also two **weekly digest** templates ("This week's events"): an email-style page and a WhatsApp group message. They are described in [Weekly digest](#weekly-digest-this-weeks-events) below.
 
+And a **branded email newsletter** for a single event (built from the newsletter text in `promo.json`): see [NEWSLETTER-README.md](NEWSLETTER-README.md).
+
 ## The data contract (what the templates read)
 
 The templates show the event in `data/event.json`. These are the fields they use:

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<!-- Browser preview of the email newsletter.
+     The email itself is built by render-newsletter.js (tables + inline styles, no JavaScript inside it).
+     This page only fetches the data, builds the email and shows it. The finished email contains none of this script.
+     Data: uses window.EVENT and window.PROMO if they exist, otherwise ../data/event.json and ../data/promo.json.
+     Optional: window.POSTER_URL (a public image link) and window.BRAND_NAME. See templates/NEWSLETTER-README.md. -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Newsletter preview</title>
+  <style>body { background: #0B0B0F; color: #9A9AA5; font-family: system-ui, sans-serif; padding: 40px; }</style>
+  <script src="render-newsletter.js"></script>
+</head>
+<body>
+  <p id="status">Loading the newsletter...</p>
+
+  <script>
+    async function start() {
+      let event = window.EVENT, promo = window.PROMO;
+      try {
+        if (!event) event = await (await fetch("../data/event.json")).json();
+        if (!promo) promo = await (await fetch("../data/promo.json")).json();
+      } catch (e) {
+        document.getElementById("status").textContent = "Could not load ../data/event.json and ../data/promo.json. Open this page from a web address (see NEWSLETTER-README.md).";
+        document.body.setAttribute("data-ready", "yes");
+        return;
+      }
+
+      const html = renderNewsletter(event, promo, { posterUrl: window.POSTER_URL, brandName: window.BRAND_NAME });
+
+      // Replace this whole page with the finished email, so what you see is exactly what would be sent
+      document.open();
+      document.write(html);
+      document.close();
+
+      await document.fonts.ready;
+      document.body.setAttribute("data-ready", "yes"); // signal: ready to photograph
+    }
+    // Wait until this page has fully loaded before replacing it (replacing it mid-load would just add to it)
+    if (document.readyState === "complete") start();
+    else window.addEventListener("load", start);
+  </script>
+</body>
+</html>
