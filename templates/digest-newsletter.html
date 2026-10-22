@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<!-- Event Autopilot template: "This week's events" newsletter. Self-contained: all styling and code is in this one file.
+     Data: uses window.EVENTS (an array of event objects) if it exists, otherwise loads ../data/digest-sample.json.
+     Works with any number of events (designed and tested for 1 to 8). See templates/README.md. -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Event Autopilot - This week's events</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    /* Brand: background #0B0B0F, cards #16161D, accent #FF5A1F, text #F5F5F7, muted #9A9AA5. No gradients or shadows. */
+    * { box-sizing: border-box; margin: 0; }
+    body { background: #0B0B0F; color: #F5F5F7; font-family: "Inter", sans-serif; font-size: 16px; line-height: 1.55; padding: 40px 16px; -webkit-font-smoothing: antialiased; }
+
+    /* The email: one centred column */
+    .email { max-width: 640px; margin: 0 auto; background: #16161D; border: 1px solid #26262F; border-radius: 12px; overflow: hidden; }
+    .pad { padding-left: 40px; padding-right: 40px; }
+
+    .header { padding-top: 36px; padding-bottom: 32px; border-bottom: 1px solid #26262F; background: #0B0B0F; border-left: 6px solid #FF5A1F; }
+    .logo { width: 170px; display: block; margin-bottom: 28px; }
+    h1 { font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: 44px; line-height: 1.02; letter-spacing: -0.04em; }
+    .range { margin-top: 10px; color: #FF5A1F; font-family: "Space Grotesk", sans-serif; font-weight: 500; font-size: 18px; }
+
+    .intro { padding-top: 28px; padding-bottom: 8px; font-size: 17px; color: #F5F5F7; }
+
+    /* One row per event: date badge | details | going */
+    .list { padding-top: 8px; padding-bottom: 12px; }
+    .row { display: flex; align-items: center; gap: 20px; padding: 22px 0; border-top: 1px solid #26262F; }
+    .row:first-child { border-top: none; }
+
+    .badge { flex: none; width: 64px; text-align: center; background: #0B0B0F; border: 1px solid #26262F; border-radius: 10px; padding: 8px 0 9px; }
+    .badge .month { display: block; font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #FF5A1F; line-height: 1.2; }
+    .badge .day { display: block; font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: 28px; line-height: 1.1; letter-spacing: -0.03em; }
+    .badge .tbc { display: block; font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: 16px; line-height: 2.4; color: #9A9AA5; }
+
+    .details { flex: 1; min-width: 0; }
+    .name { font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: 20px; line-height: 1.2; letter-spacing: -0.02em; overflow-wrap: anywhere; }
+    .when { margin-top: 4px; font-size: 15px; font-weight: 500; color: #F5F5F7; }
+    .venue { margin-top: 1px; font-size: 14px; color: #9A9AA5; overflow-wrap: anywhere; }
+
+    .going { flex: none; background: #FF5A1F; color: #0B0B0F; font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: 14px; padding: 6px 14px; border-radius: 999px; white-space: nowrap; }
+
+    .empty { padding: 28px 0 36px; color: #9A9AA5; }
+
+    .footer { margin-top: 8px; padding-top: 26px; padding-bottom: 30px; background: #0B0B0F; border-top: 1px solid #26262F; font-size: 13px; color: #9A9AA5; }
+    .footer .logo { width: 120px; margin-bottom: 12px; }
+
+    @media (max-width: 520px) {
+      body { padding: 0; }
+      .email { border-radius: 0; border-left: none; border-right: none; }
+      .pad { padding-left: 22px; padding-right: 22px; }
+      h1 { font-size: 36px; }
+      .row { flex-wrap: wrap; gap: 14px 16px; align-items: flex-start; }
+      .details { min-width: 180px; } /* too narrow to share the line with the pill, so the pill drops below */
+      .going { margin-left: 80px; } /* sits under the details, lined up with the text */
+    }
+  </style>
+</head>
+<body>
+  <div class="email">
+    <div class="header pad">
+      <!-- Logo (same as brand/logo.svg) -->
+      <svg class="logo" viewBox="0 0 580 96" role="img" aria-label="Event Autopilot">
+        <text x="0" y="70" font-family="Space Grotesk, sans-serif" font-weight="700" font-size="72" fill="#F5F5F7">Event Autopilot</text>
+        <circle cx="556" cy="60" r="10" fill="#FF5A1F"/>
+      </svg>
+      <h1>This week's events</h1>
+      <div class="range" id="range"></div>
+    </div>
+
+    <p class="intro pad" id="intro"></p>
+    <div class="list pad" id="list"></div>
+
+    <div class="footer pad">
+      <svg class="logo" viewBox="0 0 580 96" role="img" aria-label="Event Autopilot">
+        <text x="0" y="70" font-family="Space Grotesk, sans-serif" font-weight="700" font-size="72" fill="#F5F5F7">Event Autopilot</text>
+        <circle cx="556" cy="60" r="10" fill="#FF5A1F"/>
+      </svg>
+      <div>You're getting this because you're on the community mailing list.</div>
+    </div>
+  </div>
+
+  <script>
+    const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+    // "2026-10-26" becomes a real date (or null if it isn't one)
+    function parseDate(text) {
+      const d = new Date(text + "T12:00:00");
+      return text && !isNaN(d) ? d : null;
+    }
+
+    // "26-31 Oct" or "29 Oct - 3 Nov" from the earliest and latest dates ("" if no valid dates)
+    function dateRange(dates) {
+      if (!dates.length) return "";
+      const first = dates[0], last = dates[dates.length - 1];
+      const a = first.getDate() + " " + MONTHS[first.getMonth()];
+      const b = last.getDate() + " " + MONTHS[last.getMonth()];
+      if (a === b) return a;
+      if (first.getMonth() === last.getMonth()) return first.getDate() + "–" + b;
+      return a + " – " + b;
+    }
+
+    // Build a little element with plain text inside (text is placed safely, never as HTML)
+    function el(tag, className, text) {
+      const e = document.createElement(tag);
+      if (className) e.className = className;
+      if (text !== undefined) e.textContent = text;
+      return e;
+    }
+
+    // One row: date badge, details, and the "x going" pill. Anything missing is simply left out.
+    function buildRow(event) {
+      const date = parseDate(event.date);
+      const row = el("div", "row");
+
+      const badge = el("div", "badge");
+      if (date) {
+        badge.appendChild(el("span", "month", MONTHS[date.getMonth()]));
+        badge.appendChild(el("span", "day", String(date.getDate())));
+      } else {
+        badge.appendChild(el("span", "tbc", "TBC"));
+      }
+      row.appendChild(badge);
+
+      const details = el("div", "details");
+      details.appendChild(el("div", "name", event.name || "Upcoming event"));
+      const when = [date ? WEEKDAYS[date.getDay()] : "", event.time || ""].filter(Boolean).join(" · ");
+      if (when) details.appendChild(el("div", "when", when));
+      if (event.venue) details.appendChild(el("div", "venue", event.venue));
+      row.appendChild(details);
+
+      // Show "x going" only when there is at least 1 (advertising "0 going" would put people off)
+      const hasGuests = event.guest_count !== null && event.guest_count !== "" && Number(event.guest_count) >= 1;
+      if (hasGuests) row.appendChild(el("div", "going", event.guest_count + " going"));
+      return row;
+    }
+
+    // Fill the whole newsletter. Tiago's renderer can call this too: window.renderDigest(eventsArray)
+    async function renderDigest(events) {
+      document.body.removeAttribute("data-ready");
+      events = Array.isArray(events) ? events.slice() : [];
+
+      // Soonest first; events without a valid date go last
+      events.sort((a, b) => (a.date || "9999").localeCompare(b.date || "9999") || (a.time || "").localeCompare(b.time || ""));
+      const dates = events.map((e) => parseDate(e.date)).filter(Boolean);
+
+      document.getElementById("range").textContent = dateRange(dates);
+
+      const n = events.length;
+      document.getElementById("intro").textContent =
+        n === 0 ? "There are no events on this week yet. Check back soon."
+        : n === 1 ? "1 event this week. Here's the one to put in your calendar."
+        : n + " events this week. Pick one (or all of them) and bring a friend.";
+
+      const list = document.getElementById("list");
+      list.replaceChildren();
+      if (n === 0) list.appendChild(el("div", "empty", "Nothing scheduled yet."));
+      events.forEach((event) => list.appendChild(buildRow(event)));
+
+      await document.fonts.ready;
+      document.body.setAttribute("data-ready", "yes"); // signal: the page is ready to photograph
+    }
+    window.renderDigest = renderDigest;
+
+    async function start() {
+      let events = window.EVENTS; // set by the renderer, if it injects data
+      if (!events) {
+        try { events = await (await fetch("../data/digest-sample.json")).json(); }
+        catch (e) {
+          document.getElementById("intro").textContent = "Could not load ../data/digest-sample.json. See templates/README.md";
+          document.body.setAttribute("data-ready", "yes");
+          return;
+        }
+      }
+      renderDigest(events);
+    }
+    start();
+  </script>
+</body>
+</html>

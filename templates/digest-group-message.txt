@@ -1,0 +1,16 @@
+*This week's events* ({{{date_range}}})
+
+{{{intro}}}
+
+{{#events}}
+*{{{number}}}. {{{name}}}*
+{{{when}}}
+{{#venue}}
+{{{venue}}}
+{{/venue}}
+{{#going}}
+{{{going}}}
+{{/going}}
+
+{{/events}}
+Reply here if you're coming, and bring a friend.

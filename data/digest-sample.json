@@ -1,0 +1,38 @@
+[
+  {
+    "name": "Founders & Friends Breakfast",
+    "date": "2026-10-26",
+    "time": "08:30",
+    "venue": "Spitalfields Workspace, London",
+    "description": "A relaxed breakfast for early-stage founders to swap notes over coffee. No pitches, no slides.",
+    "hosts": ["Priya Nair"],
+    "guest_count": 32
+  },
+  {
+    "name": "Design Systems Drop-in",
+    "date": "2026-10-28",
+    "time": "18:00",
+    "venue": "Southbank Studio, London",
+    "description": "Bring a component you're stuck on and get fresh eyes from other designers and front-end developers.",
+    "hosts": ["Marta Kowalska", "Dev Shah"],
+    "guest_count": 21
+  },
+  {
+    "name": "London Builders Night: Ship It in One Evening",
+    "date": "2026-10-29",
+    "time": "18:30",
+    "venue": "Tech Hub Shoreditch, London",
+    "description": "An informal evening for makers, designers and founders to demo what they are building, swap feedback and meet other local builders.",
+    "hosts": ["Aluinn McDonald", "Tiago"],
+    "guest_count": 84
+  },
+  {
+    "name": "Saturday Run & Coffee",
+    "date": "2026-10-31",
+    "time": "09:00",
+    "venue": "Regent's Park, Hanover Gate, London",
+    "description": "An easy-paced 5k loop followed by coffee. All speeds welcome.",
+    "hosts": ["Sam Okafor"],
+    "guest_count": 17
+  }
+]
