@@ -6,6 +6,7 @@
 const fs = require("fs");
 const path = require("path");
 const { askGrokForJson } = require("./grok");
+const { recall } = require("../memory/cognee");
 
 const ROOT = path.join(__dirname, "..");
 const EVENT_FILE = path.join(ROOT, "shared", "event.json");
@@ -49,10 +50,21 @@ async function main() {
   const event = JSON.parse(fs.readFileSync(EVENT_FILE, "utf8"));
   const voice = readVoiceSamples();
 
+  // If Cognee (the community's memory) is set up, ask it how this community usually writes
+  let memory = "";
+  try {
+    memory = await recall(`How does this community write its event posts and newsletters? Give the tone, typical length, phrases and sign-offs, with examples. The next event is "${event.name}".`);
+    if (memory) console.log("Using what Cognee remembers about this community's voice.");
+  } catch (err) {
+    console.log("Cognee memory not available right now (" + err.message + "), using the voice/ files only.");
+  }
+
   const user = [
     `Event: ${JSON.stringify({ ...event, date_long: longDate(event.date) }, null, 2)}`,
-    voice ? `Voice samples from this community:\n${voice}` : "No voice samples given; use a friendly, plain tone.",
-  ].join("\n\n");
+    memory ? `What the community's memory (Cognee) says about its voice:\n${memory}` : "",
+    voice ? `Voice samples from this community:\n${voice}` : "",
+    !memory && !voice ? "No voice samples given; use a friendly, plain tone." : "",
+  ].filter(Boolean).join("\n\n");
 
   console.log("Asking Grok to draft the page copy, newsletter and posts...");
   const promo = await askGrokForJson({ system: SYSTEM, user });

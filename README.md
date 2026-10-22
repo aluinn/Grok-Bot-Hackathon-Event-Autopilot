@@ -31,6 +31,7 @@ Every part reads `shared/event.json` and writes its own output. The two JSON fil
 | Sponsors | `sponsors/` | 20 potential partners found with Grok live search, one outreach draft each (never sent) |
 | Review | `promo-and-approval-ui/` | the dashboard where the lead edits and approves every item |
 | Sending | `sending/` | Discord post and Ghost newsletter draft, only with the Approve flag; WhatsApp/LinkedIn open ready to send |
+| Memory | `memory/` | Cognee holds the community's past posts and approved copy; the copy generator asks it how the community writes |
 | Grok Bot | `grok-bot/` | an MCP server so Grok Bot (or Claude, Cursor) can run all of the above by chat. It has no send tool. |
 
 ## The rules we keep

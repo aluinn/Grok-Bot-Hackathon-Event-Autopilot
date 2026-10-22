@@ -182,6 +182,68 @@ server.registerTool(
 
 // ---------- start listening on stdin/stdout ----------
 
+// ---------- more Grok jobs: sponsors, outreach drafts, rewriting one item ----------
+
+server.registerTool(
+  "find_sponsors",
+  {
+    title: "Find potential sponsors",
+    description: "Use Grok live web search to list potential sponsors/partners for this event with public business contact emails. Research only; nobody is contacted.",
+    inputSchema: { count: z.number().optional().describe("How many sponsors to look for (default 20)") },
+  },
+  async ({ count }) => {
+    const args = count === undefined ? [] : ["--count", String(count)];
+    return runThenShow("sponsors/find.js", args, "sponsors/output/sponsors.md");
+  }
+);
+
+server.registerTool(
+  "draft_sponsor_outreach",
+  {
+    title: "Draft sponsor outreach emails",
+    description: "Write one short sponsorship email per sponsor found by find_sponsors. Drafts only, saved to sponsors/output/outreach/. Nothing is sent.",
+    inputSchema: {},
+  },
+  async () => runThenShow("sponsors/draft-outreach.js", [], "sponsors/output/outreach/ALL.md")
+);
+
+server.registerTool(
+  "regenerate_item",
+  {
+    title: "Rewrite one promo item",
+    description: "Ask Grok for a fresh version of one item (page_copy, newsletter, linkedin, whatsapp or discord), optionally with a note like 'shorter' or 'more playful'. Returns the draft; it does not save or send.",
+    inputSchema: {
+      id: z.enum(["page_copy", "newsletter", "linkedin", "whatsapp", "discord"]),
+      note: z.string().optional().describe("What to change, in plain words"),
+    },
+  },
+  async ({ id, note }) => {
+    const { regenerateItem } = require("../copy-generator/regenerate");
+    const event = JSON.parse(readIfExists(FILES.event) || "{}");
+    const promo = JSON.parse(readIfExists(FILES.promo) || "{}");
+    const current = id === "page_copy" ? promo.page_copy : id === "newsletter" ? promo.newsletter : (promo.posts || {})[id];
+    try {
+      const draft = await regenerateItem(id, event, current || "", note || "");
+      return text(typeof draft === "string" ? draft : `Subject: ${draft.subject}\n\n${draft.body}`);
+    } catch (err) {
+      return text("Could not rewrite it. " + err.message);
+    }
+  }
+);
+
+server.registerTool(
+  "remember_voice",
+  {
+    title: "Remember the community's voice",
+    description: "Save the voice/ samples (and, with include_event, the current event + approved copy) into Cognee, the community's memory, so future copy sounds like this community. Writes only to our own memory; contacts nobody.",
+    inputSchema: { include_event: z.boolean().optional().describe("Also remember shared/event.json and shared/promo.json") },
+  },
+  async ({ include_event }) => {
+    const run = runScript("memory/remember.js", include_event ? ["--event"] : []);
+    return text(run.output || "(no output)");
+  }
+);
+
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
