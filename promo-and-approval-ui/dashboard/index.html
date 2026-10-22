@@ -8,13 +8,19 @@
   <link rel="icon" href="data:,">
   <title>Event Autopilot: Approve</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <!-- Top bar: always visible. The trust message and the progress never leave the screen. -->
   <nav class="nav">
-    <div class="brand">Event Autopilot<span class="dot"></span></div>
+    <div class="nav-left">
+      <a class="brand" href="/">Event Autopilot<span class="dot"></span></a>
+      <div class="tabs">
+        <a class="tab active" href="/" aria-current="page">Review</a>
+        <a class="tab" href="/digest.html"><span class="wk">Weekly </span>digest</a>
+      </div>
+    </div>
     <div class="trust">Nothing is sent until you approve it.</div>
     <div class="nav-progress">
       <span id="progress-label">0 of 6 approved</span>

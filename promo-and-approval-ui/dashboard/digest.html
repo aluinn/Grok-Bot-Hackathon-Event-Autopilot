@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0B0B0F">
+  <link rel="icon" href="data:,">
+  <title>Event Autopilot: Weekly digest</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="digest-page">
+  <!-- Same top bar as the review page, with this tab highlighted -->
+  <nav class="nav">
+    <div class="nav-left">
+      <a class="brand" href="/">Event Autopilot<span class="dot"></span></a>
+      <div class="tabs">
+        <a class="tab" href="/">Review</a>
+        <a class="tab active" href="/digest.html" aria-current="page"><span class="wk">Weekly </span>digest</a>
+      </div>
+    </div>
+    <div class="trust">Nothing is sent until you approve it.</div>
+  </nav>
+
+  <main class="digest">
+    <header class="digest-head">
+      <p class="eyebrow">Weekly digest</p>
+      <h1>This week's newsletter</h1>
+      <p class="digest-sub">A preview of the weekly roundup email. It shows sample events for now, and this page never sends anything.</p>
+    </header>
+
+    <!-- The newsletter template, shown as it will look -->
+    <iframe class="digest-frame" id="digest-frame" src="/templates/digest-newsletter.html" title="Weekly digest preview"></iframe>
+    <p class="digest-note"><a href="/templates/digest-newsletter.html" target="_blank" rel="noopener">Open the full page in a new tab</a></p>
+  </main>
+
+  <script src="digest.js"></script>
+</body>
+</html>
