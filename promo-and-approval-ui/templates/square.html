@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="template.css">
+  <style>
+    /* Square 1080x1080 */
+    html, body { width: 1080px; height: 1080px; }
+    body { --pad: 90px; --bar: 24px; --small: 32px; --name: 104px; --name-max: 520px; --body: 44px; --venue-max: 130px; --hosts-max: 90px; --badge: 44px; --gap: 36px; padding-left: 114px; }
+  </style>
+</head>
+<body>
+  <div class="tag">You're invited</div>
+  <div class="main">
+    <div class="name" data-fit>{{NAME}}</div>
+    {{WHEN}}
+    {{VENUE}}
+    {{HOSTS}}
+  </div>
+  <div class="footer">{{BADGE}}</div>
+  <script src="fit.js"></script>
+</body>
+</html>

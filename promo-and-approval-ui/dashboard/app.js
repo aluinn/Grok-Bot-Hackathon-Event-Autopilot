@@ -157,10 +157,23 @@ function buildImages() {
   }
   wrap.className = "images";
   imageFiles.forEach((file) => {
+    const url = "/output/" + encodeURIComponent(file);
+    const figure = document.createElement("figure");
+
     const img = document.createElement("img");
-    img.src = "/output/" + encodeURIComponent(file);
+    img.src = url;
     img.alt = file;
-    wrap.appendChild(img);
+    figure.appendChild(img);
+
+    // Download button: saves the picture to your computer
+    const link = document.createElement("a");
+    link.className = "button";
+    link.href = url;
+    link.download = file;
+    link.textContent = "Download " + file.replace("promo-", "").replace(".png", "");
+    figure.appendChild(link);
+
+    wrap.appendChild(figure);
   });
   return wrap;
 }

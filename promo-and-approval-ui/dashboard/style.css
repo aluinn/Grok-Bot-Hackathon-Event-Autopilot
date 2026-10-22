@@ -86,4 +86,5 @@ button.approve { background: var(--accent); border-color: var(--accent); color: 
 
 /* Promo images */
 .images { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 20px; }
+.images figure { margin: 0; display: flex; flex-direction: column; gap: 10px; align-items: stretch; text-align: center; }
 .images img { width: 100%; border-radius: 8px; display: block; }
