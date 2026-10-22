@@ -1,0 +1,9 @@
+{
+  "_note": "Replace the path below with the absolute path to this repo on your machine, then paste the mcpServers block into your client's MCP config (Grok Bot, Claude Code, Cursor...).",
+  "mcpServers": {
+    "event-autopilot": {
+      "command": "node",
+      "args": ["C:/Users/you/Grok-Bot-Hackathon-Event-Autopilot/grok-bot/server.js"]
+    }
+  }
+}
