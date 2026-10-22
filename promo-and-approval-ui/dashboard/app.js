@@ -76,13 +76,15 @@ function buildCards() {
     const card = document.createElement("article");
     card.className = "card";
     card.id = "card-" + item.id;
-    // The top row is built once, so the tick can animate when the card becomes approved
+    // The header is built once, so the tick can animate when the card becomes approved
     card.innerHTML = `
-      <div class="card-top">
+      <div class="card-head">
         <span class="num">0${i + 1}</span>
         <h2>${item.title}</h2>
-        <span class="status">Approved</span>
-        <span class="badge" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+        <span class="state">
+          <span class="dot"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+          <span class="t-pending">Pending review</span><span class="t-approved">Approved</span>
+        </span>
       </div>
       <div class="card-body"></div>
       <div class="buttons"></div>`;
@@ -123,6 +125,10 @@ function drawCard(item) {
       buttons.appendChild(button(SEND_LABELS[item.id], "send", (e) => sendItem(item, e.target)));
     }
     if (!item.isImages) {
+      // Approve (and send) on the left; the quieter tools on the right
+      const spacer = document.createElement("span");
+      spacer.className = "spacer";
+      buttons.appendChild(spacer);
       buttons.appendChild(button("Edit", "", () => setEditing(item.id)));
       buttons.appendChild(button("Regenerate", "", () => regenerate(item)));
       buttons.appendChild(button("Copy", "", (e) => copyText(item, e.target)));
@@ -138,18 +144,50 @@ function button(label, className, onClick) {
   return b;
 }
 
+// Small labels above each preview, and who "posts" it in the mock-up
+const PREVIEW_TAGS = {
+  page_copy: "Event page",
+  newsletter: "Email",
+  linkedin: "LinkedIn preview",
+  whatsapp: "WhatsApp preview",
+  discord: "Discord preview",
+};
+
+// Show each item roughly as it will look where it ends up (all text is placed safely with textContent)
 function buildReadOnly(item) {
-  const wrap = document.createElement("div");
-  wrap.className = "panel";
   const c = current(item);
+  const host = (event.hosts && event.hosts[0]) || "Event host";
+  const initials = host.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+  const time = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+
+  const wrap = document.createElement("div");
+  wrap.innerHTML = `<p class="preview-tag"></p><div class="panel"></div>`;
+  wrap.querySelector(".preview-tag").textContent = PREVIEW_TAGS[item.id];
+  const panel = wrap.querySelector(".panel");
+
   if (item.id === "newsletter") {
-    wrap.innerHTML = `<p class="label">Subject</p><p class="subject"></p><p class="label">Body</p><p class="content"></p>`;
-    wrap.querySelector(".subject").textContent = c.subject;
-    wrap.querySelector(".content").textContent = c.body;
+    panel.innerHTML = `<p class="label">Subject</p><p class="subject"></p><p class="content"></p>`;
+    panel.querySelector(".subject").textContent = c.subject;
+    panel.querySelector(".content").textContent = c.body;
+  } else if (item.id === "linkedin") {
+    panel.innerHTML = `<div class="p-head"><span class="avatar"></span><div><div class="p-name"></div><div class="p-meta">Event host · Just now</div></div></div>
+      <p class="content"></p><div class="p-actions"><span>Like</span><span>Comment</span><span>Repost</span><span>Send</span></div>`;
+  } else if (item.id === "whatsapp") {
+    panel.innerHTML = `<div class="bubble"><p class="content"></p><span class="time"></span></div>`;
+    panel.querySelector(".time").textContent = time;
+  } else if (item.id === "discord") {
+    panel.innerHTML = `<div class="discord-row"><span class="avatar"></span><div><div class="p-name"><span class="who"></span><span class="stamp"></span></div><p class="content"></p></div></div>`;
+    panel.querySelector(".who").textContent = host;
+    panel.querySelector(".stamp").textContent = "Today at " + time;
   } else {
-    wrap.innerHTML = `<p class="content"></p>`;
-    wrap.querySelector(".content").textContent = c.text;
+    panel.innerHTML = `<p class="content"></p>`;
   }
+
+  if (item.id !== "newsletter") panel.querySelector(".content").textContent = c.text;
+  const avatar = panel.querySelector(".avatar");
+  if (avatar) avatar.textContent = initials;
+  const name = panel.querySelector(".p-name");
+  if (name && item.id === "linkedin") name.textContent = host;
   return wrap;
 }
 
@@ -168,6 +206,8 @@ function buildEditor(item) {
   return wrap;
 }
 
+const IMAGE_SIZES = { wide: "1200 × 630", square: "1080 × 1080", story: "1080 × 1920" };
+
 function buildImages() {
   const wrap = document.createElement("div");
   if (imageFiles.length === 0) {
@@ -180,18 +220,31 @@ function buildImages() {
     const url = "/output/" + encodeURIComponent(file);
     const figure = document.createElement("figure");
 
+    // Every picture sits in the same size tile, so tall and wide images line up neatly
+    const thumb = document.createElement("div");
+    thumb.className = "thumb";
     const img = document.createElement("img");
     img.src = url;
     img.alt = file;
-    figure.appendChild(img);
+    thumb.appendChild(img);
+    figure.appendChild(thumb);
+
+    // Caption: the name and size on the left, a download button on the right
+    const type = file.replace("promo-", "").replace(".png", "");
+    const cap = document.createElement("div");
+    cap.className = "cap";
+    cap.innerHTML = `<div><span class="cap-name"></span><span class="cap-dims"></span></div>`;
+    cap.querySelector(".cap-name").textContent = type[0].toUpperCase() + type.slice(1);
+    cap.querySelector(".cap-dims").textContent = IMAGE_SIZES[type] || "PNG";
 
     // Download button: saves the picture to your computer
     const link = document.createElement("a");
     link.className = "button";
     link.href = url;
     link.download = file;
-    link.textContent = "Download " + file.replace("promo-", "").replace(".png", "");
-    figure.appendChild(link);
+    link.textContent = "Download";
+    cap.appendChild(link);
+    figure.appendChild(cap);
 
     wrap.appendChild(figure);
   });
@@ -295,12 +348,46 @@ function copyText(item, buttonEl) {
   setTimeout(() => (buttonEl.textContent = "Copy"), 1500);
 }
 
+// ---------- The checklist on the left ----------
+function buildRail() {
+  const items = getItems();
+  const rail = document.getElementById("rail");
+  rail.innerHTML = `<p class="rail-label">Review</p><ul></ul>
+    <div class="rail-count"><span>Approved</span><span><b id="rail-count">0</b> / ${items.length}</span></div><div class="segs"></div>`;
+
+  items.forEach((item) => {
+    const li = document.createElement("li");
+    li.id = "rail-" + item.id;
+    li.innerHTML = `<a href="#card-${item.id}"><span class="mark"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span class="rail-title"></span></a>`;
+    li.querySelector(".rail-title").textContent = item.title;
+    rail.querySelector("ul").appendChild(li);
+    rail.querySelector(".segs").appendChild(document.createElement("span"));
+  });
+
+  // Highlight the item you're currently reading
+  const spy = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      rail.querySelectorAll("a").forEach((a) => a.classList.remove("active"));
+      rail.querySelector(`#rail-${entry.target.id.replace("card-", "")} a`).classList.add("active");
+    });
+  }, { rootMargin: "-35% 0px -55% 0px" });
+  document.querySelectorAll(".card").forEach((card) => spy.observe(card));
+}
+
 // ---------- Progress ----------
 let lastCount = null;
 function updateProgress() {
   const items = getItems();
   const count = items.filter((i) => state[i.id]?.approved).length;
   document.getElementById("progress-label").textContent = `${count} of ${items.length} approved`;
+
+  // The checklist: a tick beside each approved item, and one segment per item
+  items.forEach((item, i) => {
+    document.getElementById("rail-" + item.id).classList.toggle("approved", !!state[item.id]?.approved);
+    document.querySelectorAll(".segs span")[i].classList.toggle("on", !!state[item.id]?.approved);
+  });
+  document.getElementById("rail-count").textContent = count;
 
   const fill = document.getElementById("bar-fill");
   fill.style.width = `${(count / items.length) * 100}%`;
@@ -410,6 +497,7 @@ async function start() {
   buildHeader();
   buildStage();
   buildCards();
+  buildRail();
   updateProgress();
   document.querySelectorAll(".reveal").forEach((el) => revealer.observe(el));
 

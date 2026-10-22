@@ -89,89 +89,151 @@ h1 { font-size: clamp(36px, 5.8vw, 88px); line-height: 1; letter-spacing: -0.045
 .scroll-hint { position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 3; color: var(--muted); text-decoration: none; font-size: 15px; font-weight: 500; }
 .scroll-hint .arrow { display: inline-block; animation: bob 1.6s ease-in-out infinite; }
 
-/* ---------- Cards ---------- */
-main { max-width: 900px; margin: 0 auto; padding: 2vh clamp(16px, 4vw, 32px) 6vh; }
-
 /* The heading that appears in the middle of the screen at the end of the 3D intro (app.js fades it in) */
 .hero-end { position: absolute; inset: var(--nav-h) 0 0 0; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 0 20px; opacity: 0; pointer-events: none; }
 .section-title { font-size: clamp(36px, 6vw, 80px); line-height: 1.02; letter-spacing: -0.045em; }
 .section-sub { color: var(--muted); font-size: clamp(17px, 1.8vw, 22px); margin: 18px 0 0; }
 
-/* Things fade and rise into place when they scroll into view (app.js adds the "in" class) */
-.reveal { opacity: 0; transform: translateY(32px); transition: opacity 0.9s var(--ease), transform 0.9s var(--ease); }
-.reveal.in { opacity: 1; transform: none; }
+/* ---------- Review area (after the intro) ---------- */
+/* A calm, professional layout: a sticky checklist on the left, the items on the right.
+   Flat surfaces, hairline borders, small corners, one orange action per item. */
+:root {
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace; /* small technical labels */
+  --line-soft: #1E1E26;
+  --hover: #1C1C25;
+}
 
+.review {
+  max-width: 1180px; margin: 0 auto; font-size: 16px;
+  padding: 2vh clamp(16px, 4vw, 40px) 10vh;
+  display: grid; grid-template-columns: 232px minmax(0, 1fr); gap: 56px; align-items: start;
+}
+.mono { font-family: var(--mono); }
+
+/* --- Left rail: checklist --- */
+.rail { position: sticky; top: calc(var(--nav-h) + 28px); }
+.rail-label, .preview-tag, .label, .rail-count, .state, .num, .cap-dims {
+  font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+}
+.rail-label { margin: 0 0 14px; }
+.rail ul { list-style: none; margin: 0; padding: 0; }
+.rail a {
+  display: flex; align-items: center; gap: 12px; padding: 9px 12px; margin: 0 -12px;
+  color: var(--muted); text-decoration: none; font-size: 14px; font-weight: 500; border-radius: 6px;
+  transition: color 0.2s, background 0.2s;
+}
+.rail a:hover { color: var(--text); background: var(--hover); }
+.rail a.active { color: var(--text); background: var(--hover); }
+.mark { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid var(--line); flex: none; display: grid; place-items: center; transition: background 0.3s, border-color 0.3s; }
+.mark svg { width: 9px; height: 9px; fill: none; stroke: var(--bg); stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 24; stroke-dashoffset: 24; transition: stroke-dashoffset 0.4s 0.1s var(--ease); }
+.rail li.approved .mark { background: var(--green); border-color: var(--green); }
+.rail li.approved .mark svg { stroke-dashoffset: 0; }
+.rail a.active .mark { border-color: var(--muted); }
+.rail li.approved a.active .mark { border-color: var(--green); }
+.rail-count { margin: 22px 0 10px; display: flex; justify-content: space-between; }
+.rail-count b { color: var(--text); font-weight: 500; }
+.segs { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; }
+.segs span { height: 4px; border-radius: 2px; background: var(--line); transition: background 0.4s; }
+.segs span.on { background: var(--green); }
+
+/* --- Items --- */
 .card {
-  background: var(--card); border: 2px solid var(--card); border-radius: 24px;
-  padding: clamp(20px, 3.4vw, 36px); margin-bottom: 28px;
-  /* Starts tilted back in 3D and low down; slides forward into place */
-  opacity: 0;
-  transform: perspective(1400px) translateY(80px) rotateX(16deg) scale(0.96);
-  transform-origin: 50% 100%;
-  transition: opacity 0.9s var(--ease), transform 1s var(--ease), border-color 0.45s;
+  background: var(--card); border: 1px solid var(--line); border-radius: 12px; margin-bottom: 20px;
+  scroll-margin-top: calc(var(--nav-h) + 28px);
+  opacity: 0; transform: translateY(28px);
+  transition: opacity 0.8s var(--ease), transform 0.9s var(--ease), border-color 0.3s;
 }
 .card.in { opacity: 1; transform: none; }
-.card.approved { border-color: var(--green); }
+.card:hover { border-color: #33333E; }
+.card.approved, .card.approved:hover { border-color: rgba(47, 191, 113, 0.55); }
 
-.card-top { display: flex; align-items: center; gap: 16px; }
-.num { font-family: "Space Grotesk", sans-serif; font-weight: 500; font-size: 15px; color: var(--muted); }
-.card-top h2 { flex: 1; font-size: clamp(22px, 3vw, 30px); }
-.status { color: var(--green); font-weight: 600; font-size: 15px; opacity: 0; transform: translateX(8px); transition: opacity 0.4s, transform 0.5s var(--ease); }
-.card.approved .status { opacity: 1; transform: none; }
+.card-head { display: flex; align-items: center; gap: 14px; padding: 18px 24px; border-bottom: 1px solid var(--line-soft); }
+.card-head h2 { flex: 1; font-size: 19px; font-weight: 700; letter-spacing: -0.02em; }
+.state { display: inline-flex; align-items: center; gap: 8px; }
+.state .dot { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid var(--muted); display: grid; place-items: center; transition: background 0.3s, border-color 0.3s; }
+.state .dot svg { width: 9px; height: 9px; fill: none; stroke: var(--bg); stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 24; stroke-dashoffset: 24; transition: stroke-dashoffset 0.45s 0.1s var(--ease); }
+.state .t-approved { display: none; }
+.card.approved .state { color: var(--green); }
+.card.approved .state .t-pending { display: none; }
+.card.approved .state .t-approved { display: inline; }
+.card.approved .state .dot { background: var(--green); border-color: var(--green); }
+.card.approved .state .dot svg { stroke-dashoffset: 0; }
 
-/* The tick: a circle that fills green, then the tick draws itself */
-.badge { width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--line); display: grid; place-items: center; transition: background 0.4s, border-color 0.4s, transform 0.5s var(--ease); }
-.badge svg, .done-badge svg { width: 22px; height: 22px; fill: none; stroke: var(--bg); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 24; stroke-dashoffset: 24; transition: stroke-dashoffset 0.5s 0.15s var(--ease); }
-.card.approved .badge { background: var(--green); border-color: var(--green); transform: scale(1.1); }
-.card.approved .badge svg { stroke-dashoffset: 0; }
+.card-body { padding: 24px; }
+.fade-in { animation: rise 0.45s var(--ease) both; }
 
-.panel { background: var(--bg); border-radius: 16px; padding: 22px 24px; margin: 22px 0; }
-.fade-in { animation: rise 0.5s var(--ease) both; }
-.content { white-space: pre-wrap; margin: 0; font-size: clamp(17px, 1.7vw, 20px); line-height: 1.65; }
-.label { color: var(--muted); font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; margin: 0 0 6px; }
-.subject { font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: 22px; letter-spacing: -0.02em; margin: 0 0 20px; }
+/* --- Previews: how each item will look where it ends up --- */
+.preview-tag { margin: 0 0 10px; }
+.panel { background: var(--bg); border: 1px solid var(--line-soft); border-radius: 8px; padding: 20px; }
+.content { white-space: pre-wrap; margin: 0; font-size: 16px; line-height: 1.65; color: var(--text); }
+.label { margin: 0 0 6px; }
+.subject { font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: 20px; letter-spacing: -0.02em; margin: 0 0 16px; padding-bottom: 16px; border-bottom: 1px solid var(--line-soft); }
+
+.p-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--card); border: 1px solid var(--line); display: grid; place-items: center; font-family: var(--mono); font-size: 12px; font-weight: 500; color: var(--text); flex: none; }
+.p-name { font-weight: 600; font-size: 15px; line-height: 1.25; }
+.p-meta { color: var(--muted); font-size: 13px; line-height: 1.25; }
+.p-actions { display: flex; gap: 22px; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line-soft); color: var(--muted); font-size: 13px; font-weight: 500; }
+.bubble { display: inline-block; max-width: 520px; background: var(--card); border: 1px solid var(--line); border-radius: 10px 10px 10px 2px; padding: 12px 14px 8px; }
+.bubble .content { font-size: 15px; }
+.bubble .time { display: block; text-align: right; margin-top: 4px; color: var(--muted); font-size: 11px; font-family: var(--mono); }
+.discord-row { display: flex; gap: 14px; align-items: flex-start; }
+.discord-row .p-name .stamp { color: var(--muted); font-weight: 400; font-size: 12px; margin-left: 8px; }
 
 /* Waiting state for Regenerate: calm pulsing bars (not a gradient shimmer) */
-.skeleton span { display: block; height: 14px; background: var(--line); border-radius: 7px; margin-bottom: 14px; animation: pulse 1.1s ease-in-out infinite; }
+.skeleton span { display: block; height: 12px; background: var(--line); border-radius: 6px; margin-bottom: 12px; animation: pulse 1.1s ease-in-out infinite; }
 .skeleton span:nth-child(1) { width: 100%; }
 .skeleton span:nth-child(2) { width: 92%; animation-delay: 0.15s; }
 .skeleton span:nth-child(3) { width: 64%; animation-delay: 0.3s; margin-bottom: 0; }
 
-textarea, input[type="text"] { width: 100%; background: var(--bg); color: var(--text); border: 2px solid var(--line); border-radius: 16px; padding: 16px 18px; font: inherit; line-height: 1.6; margin-bottom: 16px; transition: border-color 0.3s; }
+textarea, input[type="text"] { width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; font: inherit; font-size: 16px; line-height: 1.6; margin-bottom: 16px; transition: border-color 0.2s; }
 textarea:focus, input[type="text"]:focus { outline: none; border-color: var(--accent); }
-textarea { min-height: 180px; resize: vertical; }
+textarea { min-height: 170px; resize: vertical; }
 .panel textarea:last-child, .panel input:last-child { margin-bottom: 0; }
 
-/* ---------- Buttons ---------- */
-.buttons { display: flex; flex-wrap: wrap; gap: 10px; }
+/* --- Actions: one clear primary button, the rest quiet --- */
+.buttons { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 14px 24px; border-top: 1px solid var(--line-soft); }
+.spacer { flex: 1; }
 button, .button {
-  font: inherit; font-weight: 600; font-size: 16px; line-height: 1.2;
-  background: transparent; color: var(--text); border: 1.5px solid var(--line); border-radius: 999px;
-  padding: 12px 24px; cursor: pointer; text-decoration: none; text-align: center;
-  transition: transform 0.25s var(--ease), border-color 0.25s, background 0.3s, color 0.3s;
+  font: inherit; font-size: 14px; font-weight: 500; line-height: 1; height: 36px; padding: 0 16px; display: inline-flex; align-items: center; justify-content: center;
+  background: transparent; color: var(--text); border: 1px solid var(--line); border-radius: 8px;
+  cursor: pointer; text-decoration: none; white-space: nowrap;
+  transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.15s;
 }
-button:hover, .button:hover { border-color: var(--text); transform: translateY(-2px); }
-button:active, .button:active { transform: scale(0.96); }
-button.approve { background: var(--accent); border-color: var(--accent); color: var(--bg); }
-.card.approved button.approve { background: var(--green); border-color: var(--green); }
+button:hover, .button:hover { background: var(--hover); border-color: #3A3A46; }
+button:active, .button:active { transform: scale(0.97); }
+button.approve { background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 600; }
+button.approve:hover { background: #FF6F3A; border-color: #FF6F3A; }
+.card.approved button.approve { background: transparent; border-color: rgba(47, 191, 113, 0.6); color: var(--green); }
 button.send { border-color: var(--green); color: var(--green); } /* only appears after Approve */
+button.send:hover { background: rgba(47, 191, 113, 0.1); }
 
-/* ---------- Promo images ---------- */
-.images { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; align-items: start; margin: 22px 0; }
-.images figure { margin: 0; display: flex; flex-direction: column; gap: 12px; }
-.images img { width: 100%; border-radius: 16px; display: block; border: 1px solid var(--line); transition: transform 0.5s var(--ease); }
-.images figure:hover img { transform: translateY(-6px) scale(1.01); }
-.images .button { width: 100%; }
+/* --- Promo images --- */
+.images { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 20px; align-items: start; }
+.images figure { margin: 0; }
+.thumb { height: 240px; overflow: hidden; display: grid; place-items: center; padding: 14px; background: var(--bg); border: 1px solid var(--line-soft); border-radius: 8px; transition: border-color 0.2s; }
+.thumb img { max-width: 100%; max-height: 210px; width: auto; height: auto; display: block; border-radius: 4px; } /* 210 = tile height minus its padding */
+.images figure:hover .thumb { border-color: #3A3A46; }
+.cap { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; }
+.cap-name { font-size: 14px; font-weight: 600; line-height: 1.2; }
+.cap-dims { display: block; margin-top: 3px; }
+.cap .button { height: 32px; padding: 0 12px; font-size: 13px; }
 
-/* ---------- All approved ---------- */
-.done { text-align: center; padding: 8vh 0 14vh; opacity: 0; transform: translateY(40px) scale(0.96); transition: opacity 0.8s var(--ease), transform 0.9s var(--ease); }
+/* --- All approved: a quiet summary bar, not a celebration --- */
+.done { display: flex; align-items: center; gap: 16px; border: 1px solid rgba(47, 191, 113, 0.55); border-radius: 12px; padding: 20px 24px; opacity: 0; transform: translateY(12px); transition: opacity 0.6s var(--ease), transform 0.7s var(--ease); }
 .done.show { opacity: 1; transform: none; }
-.done h2 { font-size: clamp(36px, 6vw, 64px); }
-.done p { margin: 10px 0 0; font-size: 20px; }
-.done-badge { width: 72px; height: 72px; border-radius: 50%; background: var(--green); margin: 0 auto 24px; display: grid; place-items: center; transform: scale(0.6); transition: transform 0.7s 0.1s var(--ease); }
-.done-badge svg { width: 38px; height: 38px; stroke-width: 2.6; }
-.done.show .done-badge { transform: none; }
-.done.show .done-badge svg { stroke-dashoffset: 0; }
+.done-icon { width: 32px; height: 32px; border-radius: 50%; background: var(--green); display: grid; place-items: center; flex: none; }
+.done-icon svg { width: 16px; height: 16px; fill: none; stroke: var(--bg); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 24; stroke-dashoffset: 24; transition: stroke-dashoffset 0.5s 0.2s var(--ease); }
+.done.show .done-icon svg { stroke-dashoffset: 0; }
+.done h2 { font-size: 18px; font-weight: 700; letter-spacing: -0.02em; }
+.done p { margin: 2px 0 0; font-size: 14px; color: var(--muted); }
+
+@media (max-width: 900px) {
+  .review { grid-template-columns: 1fr; gap: 0; }
+  .rail { display: none; }
+  .card-head, .card-body, .buttons { padding-left: 18px; padding-right: 18px; }
+  .spacer { display: none; }
+}
 
 /* ---------- Motion ---------- */
 @keyframes rise { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
