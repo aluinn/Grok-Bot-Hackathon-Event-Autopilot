@@ -496,6 +496,37 @@ server.registerTool(
   }
 );
 
+server.registerTool(
+  "confirm_database_saved",
+  {
+    title: "Confirm the event was saved to Supabase",
+    description: "After you saved the event row with your own Supabase connector (see get_database_record), call this with the project name and the row id. It marks the Database agent as done in Mission Control. It does not touch the database.",
+    inputSchema: { project: z.string().describe("Supabase project name"), row_id: z.string().describe("The id of the saved row") },
+  },
+  async ({ project, row_id }) => {
+    const row = JSON.parse(readIfExists("event-page/output/supabase-row.json") || "null");
+    if (!row) return text("No event page built yet. Call run_production first.");
+    fs.writeFileSync(path.join(repoRoot, "event-page", "output", "database-saved.json"),
+      JSON.stringify({ slug: row.slug, project, row_id, at: new Date().toISOString() }, null, 2));
+
+    // Update the latest run so Mission Control turns the Database card green straight away
+    const statusFile = path.join(repoRoot, "autopilot", "output", "status.json");
+    const status = JSON.parse(readIfExists("autopilot/output/status.json") || "null");
+    const card = status && status.agents.find((a) => a.id === "supabase");
+    if (card && card.state !== "done") {
+      const { minutesFor } = require("../autopilot/agents");
+      Object.assign(card, {
+        state: "done", note: "", endedAt: new Date().toISOString(), startedAt: card.startedAt || new Date().toISOString(),
+        summary: `Saved by Grok Bot to Supabase (${project}) as an unpublished draft`, output: { type: "text", value: row_id },
+        minutesSaved: minutesFor("supabase").minutes,
+      });
+      status.totalMinutesSaved = status.agents.reduce((sum, a) => sum + (a.minutesSaved || 0), 0);
+      fs.writeFileSync(statusFile, JSON.stringify(status, null, 2));
+    }
+    return text(`Recorded: "${row.slug}" saved in ${project} (row ${row_id}). The Database agent now shows done.`);
+  }
+);
+
 // ---------- start ----------
 // Two ways to run:
 //   node grok-bot/server.js            -> stdio, for a client on this computer (Claude Code, Cursor)

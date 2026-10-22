@@ -153,7 +153,12 @@ function buildAgents(input) {
         const row = readJson("event-page/output/supabase-row.json");
         if (!row) throw new Error("event-page/output/supabase-row.json is missing");
         const base = process.env.SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-        if (!base || !key) return { skipped: "Ask Grok Bot to save it with its Supabase connector (supabase/schema.sql)" };
+        if (!base || !key) {
+          // No keys here: if Grok Bot already saved this event with its own Supabase connector, that counts
+          const saved = readJson("event-page/output/database-saved.json");
+          if (saved && saved.slug === row.slug) return { summary: `Saved by Grok Bot to Supabase (${saved.project}) as an unpublished draft`, output: { type: "text", value: saved.row_id } };
+          return { skipped: "Ask Grok Bot to save it with its Supabase connector (get_database_record), then confirm_database_saved" };
+        }
         // Save as a private draft row: published stays false until the lead approves
         const response = await fetch(`${base.replace(/\/$/, "")}/rest/v1/events?on_conflict=slug`, {
           method: "POST",
@@ -281,4 +286,4 @@ async function runAutopilot({ input = "", mode = "full" } = {}, onUpdate = () =>
   return status;
 }
 
-module.exports = { runAutopilot, STATUS_FILE };
+module.exports = { runAutopilot, STATUS_FILE, minutesFor };
