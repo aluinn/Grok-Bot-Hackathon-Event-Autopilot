@@ -7,7 +7,7 @@
 
 const fs = require("fs");
 const path = require("path");
-const { askGrokForJson } = require("../copy-generator/grok");
+const { askGrokWithWebSearchForJson } = require("../copy-generator/grok");
 const { SAMPLE_SPONSORS } = require("./sample");
 
 const ROOT = path.join(__dirname, "..");
@@ -15,7 +15,7 @@ const EVENT_FILE = path.join(ROOT, "shared", "event.json");
 const OUT_DIR = path.join(__dirname, "output");
 
 // Turn on xAI Live Search so Grok looks at the real, current web and returns citations.
-const SEARCH = { search_parameters: { mode: "on", return_citations: true } };
+// Grok searches the web itself through xAI's Agent Tools (web_search), see copy-generator/grok.js
 
 const TIERS = ["venue", "food & drink", "tooling", "recruiting", "community"];
 const CONFIDENCE_ORDER = { high: 0, medium: 1, low: 2 };
@@ -85,19 +85,17 @@ function toMarkdown(sponsors, event) {
 async function main() {
   const { count, sample, dryRun } = readArgs();
   const event = JSON.parse(fs.readFileSync(EVENT_FILE, "utf8"));
-  const request = { system: SYSTEM, user: buildUserPrompt(event, count), extra: SEARCH };
+  const request = { system: SYSTEM, user: buildUserPrompt(event, count) };
 
   if (dryRun) {
     // Show the full request body exactly as grok.js would send it, then stop
     const body = {
-      model: process.env.GROK_MODEL || "grok-4-fast",
-      temperature: 0.7,
-      response_format: { type: "json_object" },
-      messages: [
+      model: process.env.GROK_SEARCH_MODEL || "grok-4.7",
+      input: [
         { role: "system", content: request.system },
         { role: "user", content: request.user },
       ],
-      ...request.extra,
+      tools: [{ type: "web_search" }],
     };
     console.log(JSON.stringify(body, null, 2));
     console.log("\nDry run: nothing was sent to the API.");
@@ -108,7 +106,7 @@ async function main() {
   if (sample) {
     sponsors = SAMPLE_SPONSORS;
   } else {
-    const answer = await askGrokForJson(request);
+    const answer = await askGrokWithWebSearchForJson(request);
     sponsors = Array.isArray(answer.sponsors) ? answer.sponsors : [];
   }
 
@@ -129,5 +127,5 @@ async function main() {
 
 main().catch((err) => {
   console.error("Sponsor search failed:", err.message);
-  process.exit(1);
+  process.exitCode = 1; // exit gently (process.exit right after a web request crashes Node on Windows)
 });

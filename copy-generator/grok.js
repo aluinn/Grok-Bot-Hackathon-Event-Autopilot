@@ -53,4 +53,47 @@ async function askGrokForJson({ system, user, extra = {} }) {
   }
 }
 
-module.exports = { askGrokForJson, loadEnv };
+// Ask Grok a question that needs fresh facts from the web (e.g. who sponsors London meetups).
+// Uses xAI's Agent Tools (the /v1/responses endpoint with the web_search tool), which replaced the old
+// "live search" option. Grok searches by itself, then answers; we pull the JSON out of its answer.
+async function askGrokWithWebSearchForJson({ system, user }) {
+  loadEnv();
+  const key = process.env.XAI_API_KEY;
+  if (!key) throw new Error("XAI_API_KEY is missing. Put it in the .env file at the project root (see .env.example).");
+
+  const response = await fetch("https://api.x.ai/v1/responses", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+    body: JSON.stringify({
+      model: process.env.GROK_SEARCH_MODEL || "grok-4.7",
+      input: [
+        { role: "system", content: system + "\nReply with the JSON object only, no other text." },
+        { role: "user", content: user },
+      ],
+      tools: [{ type: "web_search" }],
+    }),
+  });
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(`Grok replied with HTTP ${response.status}: ${detail.slice(0, 300)}`);
+  }
+  const data = await response.json();
+
+  // The answer text is in output[].content[] items of type "output_text" (or a ready-made output_text field)
+  const text = data.output_text || (data.output || [])
+    .flatMap((item) => item.content || [])
+    .filter((c) => c.type === "output_text" && c.text)
+    .map((c) => c.text)
+    .join("\n");
+
+  // Grok may wrap the JSON in ```json fences or a sentence; take the outermost {...}
+  const start = text.indexOf("{"), end = text.lastIndexOf("}");
+  if (start === -1 || end === -1) throw new Error("Grok's search answer had no JSON in it. It said: " + text.slice(0, 200));
+  try {
+    return JSON.parse(text.slice(start, end + 1));
+  } catch {
+    throw new Error("Grok's search answer was not valid JSON. It said: " + text.slice(0, 200));
+  }
+}
+
+module.exports = { askGrokForJson, askGrokWithWebSearchForJson, loadEnv };

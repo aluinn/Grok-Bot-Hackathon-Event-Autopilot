@@ -39,4 +39,4 @@ async function main() {
   console.log(`Saved shared/event.json: "${clean.name}" on ${clean.date} at ${clean.time}, ${clean.venue}.`);
 }
 
-main().catch((err) => { console.log("Could not create the event. " + err.message); process.exit(1); });
+main().catch((err) => { console.log("Could not create the event. " + err.message); process.exitCode = 1; });

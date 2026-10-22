@@ -254,7 +254,7 @@ server.registerTool(
   "get_writing_brief",
   {
     title: "Get the writing brief",
-    description: "Everything Grok Bot needs to write the promo copy itself: the event, the exact JSON shape to produce, the house rules, the community's voice samples and what Cognee remembers. Write the copy, then call save_promo.",
+    description: "Everything Grok Bot needs to write the promo copy itself: the event, the exact JSON shape to produce, the house rules, the community's voice samples and what Cognee remembers. Write the copy, then call save_promo. It already includes what Cognee remembers.",
     inputSchema: {},
   },
   async () => {
@@ -317,6 +317,84 @@ server.registerTool(
     if (event.time && !all.includes(event.time)) warnings.push(`the time ${event.time} is not written anywhere`);
     return text("Saved shared/promo.json with 5 drafts for the lead to review in the dashboard." + (warnings.length ? " Worth checking: " + warnings.join("; ") + "." : ""));
   }
+);
+
+// ---------- Cognee bridge: Cognee cloud has no MCP endpoint of its own, so these two tools pass through ----------
+
+server.registerTool(
+  "recall_memory",
+  {
+    title: "Ask the community's memory",
+    description: "Ask the community's memory (Cognee) anything: past events, how the community writes, what worked before.",
+    inputSchema: { question: z.string().describe("The question, in plain words") },
+  },
+  async ({ question }) => {
+    const { recall } = require("../memory/cognee");
+    try {
+      const answer = await recall(question);
+      return text(answer || "Cognee is not set up (or it remembers nothing about this yet).");
+    } catch (err) {
+      return text("Cognee did not answer. " + err.message);
+    }
+  }
+);
+
+server.registerTool(
+  "remember_text",
+  {
+    title: "Save something to the community's memory",
+    description: "Save a note, past post or lesson into the community's memory (Cognee). Writes only to our own memory; contacts nobody.",
+    inputSchema: {
+      text: z.string().describe("What to remember"),
+      label: z.string().optional().describe("A short label, e.g. 'Past LinkedIn post'"),
+    },
+  },
+  async ({ text: note, label }) => {
+    const { remember } = require("../memory/cognee");
+    try {
+      const result = await remember([label ? label + ": " + note : note]);
+      return text(result.skipped ? result.skipped : "Remembered in Cognee (dataset community-voice).");
+    } catch (err) {
+      return text("Could not save to Cognee. " + err.message);
+    }
+  }
+);
+
+// ---------- the autopilot: every agent in one go (see autopilot/agents.js) ----------
+// These run autopilot/run.js and wait for it. They only make drafts; nothing is sent.
+
+const { execFile } = require("child_process");
+
+// Run the autopilot command line and return what it printed (it can take a few minutes)
+function runAutopilotCli(args) {
+  return new Promise((resolve) => {
+    execFile(process.execPath, [path.join(repoRoot, "autopilot", "run.js"), ...args],
+      { cwd: repoRoot, encoding: "utf8", timeout: 15 * 60 * 1000, maxBuffer: 10 * 1024 * 1024, windowsHide: true },
+      (err, stdout, stderr) => {
+        const out = (stdout || "").trim() || (stderr || "").trim() || (err ? err.message : "(no output)");
+        resolve(text(out + "\n\nOpen the dashboard's Launch tab to watch. " + NEVER_SENDS));
+      });
+  });
+}
+
+server.registerTool(
+  "launch_event",
+  {
+    title: "Launch the autopilot",
+    description: "Run every agent from one line of text or a Luma link: event, visuals, run sheet, copy, sponsors, outreach drafts, event page. Everything is a draft for the lead to approve in the dashboard; nothing is sent.",
+    inputSchema: { input: z.string().describe("One line about the event, or a Luma link") },
+  },
+  async ({ input }) => runAutopilotCli([input])
+);
+
+server.registerTool(
+  "run_production",
+  {
+    title: "Build everything from what Grok Bot wrote",
+    description: "Use after save_event and save_promo: renders the visuals, builds the run sheet and event page, and remembers the event. Drafts only; nothing is sent.",
+    inputSchema: {},
+  },
+  async () => runAutopilotCli(["--production"])
 );
 
 // ---------- start ----------

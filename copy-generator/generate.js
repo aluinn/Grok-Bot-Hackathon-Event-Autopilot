@@ -92,7 +92,7 @@ async function main() {
 
 // Run only when started from the command line; other code (the Grok Bot server) just borrows the pieces
 if (require.main === module) {
-  main().catch((err) => { console.log("Could not write the promo copy. " + err.message); process.exit(1); });
+  main().catch((err) => { console.log("Could not write the promo copy. " + err.message); process.exitCode = 1; });
 }
 
 module.exports = { SYSTEM, readVoiceSamples, longDate };

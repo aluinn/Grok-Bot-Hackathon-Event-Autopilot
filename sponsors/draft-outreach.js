@@ -145,5 +145,5 @@ async function main() {
 
 main().catch((err) => {
   console.error("Drafting failed:", err.message);
-  process.exit(1);
+  process.exitCode = 1; // exit gently (process.exit right after a web request crashes Node on Windows)
 });

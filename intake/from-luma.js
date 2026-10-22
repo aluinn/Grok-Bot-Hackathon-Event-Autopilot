@@ -19,4 +19,4 @@ async function main() {
   console.log(`Saved shared/event.json: "${event.name}" on ${event.date} at ${event.time}, ${event.venue}, ${event.guest_count} going.`);
 }
 
-main().catch((err) => { console.log("Could not read the Luma event. " + err.message); process.exit(1); });
+main().catch((err) => { console.log("Could not read the Luma event. " + err.message); process.exitCode = 1; });

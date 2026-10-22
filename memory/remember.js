@@ -35,4 +35,4 @@ async function main() {
   console.log(result.skipped ? result.skipped : `Done: ${result.saved} text(s) remembered in dataset "${result.dataset}".`);
 }
 
-main().catch((err) => { console.log("Could not save to Cognee. " + err.message); process.exit(1); });
+main().catch((err) => { console.log("Could not save to Cognee. " + err.message); process.exitCode = 1; });
