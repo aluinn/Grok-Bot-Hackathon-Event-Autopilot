@@ -736,6 +736,7 @@ async function start() {
   event = await (await fetch("/shared/event.json")).json();
   promo = await (await fetch("/shared/promo.json")).json();
   imageFiles = await (await fetch("/api/images")).json();
+  window.EVENT = event; // the assistant reads this (see the "Autopilot assistant" section below)
 
   buildHeader();
   buildStage();
@@ -751,5 +752,30 @@ async function start() {
     applyScene(currentP);
   }
 }
+
+// ---------- The Autopilot assistant (assistant/assistant.js) ----------
+// The assistant only SUGGESTS changes. It reads the page's data through these three values, and when the user
+// clicks "Apply" on a suggestion it announces it with an "autopilot:apply" event. It never approves or sends anything.
+
+// Let the assistant READ the page's data (read-only: it can't change anything through these).
+// (window.EVENT is set in start(), once the event has loaded.)
+Object.defineProperty(window, "PROMO", { configurable: true, get: () => ({
+  page_copy: current(findItem("page_copy")).text,
+  newsletter: current(findItem("newsletter")),
+  posts: { linkedin: current(findItem("linkedin")).text, whatsapp: current(findItem("whatsapp")).text, discord: current(findItem("discord")).text },
+}) });
+Object.defineProperty(window, "APPROVED", { configurable: true, get: () => getItems().filter((i) => state[i.id]?.approved).map((i) => i.id) });
+
+// When the user clicks "Apply" in the assistant, put the new text in that card.
+// The text must be approved again, so setState clears the approval.
+document.addEventListener("autopilot:apply", (e) => {
+  const item = findItem(e.detail.target);
+  if (!item || item.isImages) return;
+  if (editing === item.id) editing = null; // if the lead was mid-edit on this card, close the editor
+  if (item.id === "newsletter") setState(item.id, { body: e.detail.newText, approved: false });
+  else setState(item.id, { text: e.detail.newText, approved: false });
+  drawCard(item);
+  updateProgress();
+});
 
 start();

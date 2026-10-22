@@ -7,6 +7,7 @@ const PORT = 4010;
 const SHARED_DIR = path.join(__dirname, "..", "..", "shared"); // event.json + promo.json
 const OUTPUT_DIR = path.join(__dirname, "..", "output");        // promo images
 const TEMPLATES_DIR = path.join(__dirname, "..", "..", "templates"); // the picture / digest templates
+const ASSISTANT_DIR = path.join(__dirname, "..", "..", "assistant");        // the chat assistant widget
 const DATA_DIR = path.join(__dirname, "..", "..", "data");           // sample data for the digest
 const TYPES = { ".html": "text/html", ".css": "text/css", ".js": "text/javascript", ".json": "application/json", ".png": "image/png" };
 
@@ -186,6 +187,7 @@ http.createServer((req, res) => {
   // The weekly digest tab shows templates/digest-newsletter.html, which reads one sample data file.
   // Only that file is shared from data/ (the rest of data/ stays private).
   if (url.startsWith("/templates/")) return sendFile(res, TEMPLATES_DIR, url.slice("/templates/".length));
+  if (url.startsWith("/assistant/")) return sendFile(res, ASSISTANT_DIR, url.slice("/assistant/".length));
   if (url === "/data/digest-sample.json") return sendFile(res, DATA_DIR, "digest-sample.json");
   if (url === "/data/digest-week.json") return sendFile(res, DATA_DIR, "digest-week.json"); // live week from Luma (digest/fetch-week.js)
   if (url.startsWith("/shared/")) return sendFile(res, SHARED_DIR, url.slice("/shared/".length));

@@ -19,6 +19,8 @@ Open `assistant/test.html` in a browser (just double-click it). Click the round 
 
 ## Add it to the dashboard: two lines
 
+**This is already done for the dashboard's review page** (`promo-and-approval-ui/dashboard/`): the two lines are in `index.html`, the `assistant/` folder is shared in `server.js`, and the data and the Apply listener are in `app.js` (all three are described below, so you can see what was added or copy it to another page).
+
 Put these two lines just before `</body>` in `promo-and-approval-ui/dashboard/index.html`:
 
 ```html
@@ -54,6 +56,7 @@ Object.defineProperty(window, "APPROVED", { configurable: true, get: () => getIt
 document.addEventListener("autopilot:apply", (e) => {
   const item = findItem(e.detail.target);
   if (!item || item.isImages) return;
+  if (editing === item.id) editing = null; // if the lead was mid-edit on this card, close the editor
   if (item.id === "newsletter") setState(item.id, { body: e.detail.newText, approved: false });
   else setState(item.id, { text: e.detail.newText, approved: false });
   drawCard(item);
