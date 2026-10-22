@@ -500,6 +500,27 @@ function createServer() {
   );
 
   server.registerTool(
+    "save_run_sheet",
+    {
+      title: "Save the event's own agenda",
+      description: "Replace the standard meetup run sheet with this event's own programme (e.g. a hackathon: doors, briefs, hacking, food, demos, prizes). Times are HH:MM London time. Volunteer arrival, setup, close and pack-down are added around it. Optionally a real budget. Rebuilds the run sheet, the calendar file and the event page.",
+      inputSchema: {
+        blocks: z.array(z.object({ time: z.string(), what: z.string(), who: z.string().optional(), notes: z.string().optional() })),
+        end_time: z.string().describe("When the event ends, HH:MM"),
+        budget: z.array(z.object({ item: z.string(), how: z.string().optional(), amount: z.number() })).optional(),
+      },
+    },
+    async ({ blocks, end_time, budget }) => {
+      const event = JSON.parse(readIfExists(FILES.event) || "null");
+      if (!event) return text("There is no event yet. Call save_event first.");
+      fs.writeFileSync(path.join(repoRoot, "run-sheet", "agenda.json"), JSON.stringify({ event: event.name, end_time, blocks, budget: budget || [] }, null, 2));
+      const sheet = runScript("run-sheet/build.js");
+      const page = runScript("event-page/build.js");
+      return text([sheet.output, page.output, "", readIfExists(FILES.runSheet) || ""].join(String.fromCharCode(10)));
+    }
+  );
+
+  server.registerTool(
     "confirm_database_saved",
     {
       title: "Confirm the event was saved to Supabase",

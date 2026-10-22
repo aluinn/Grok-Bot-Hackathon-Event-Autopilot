@@ -10,6 +10,13 @@ const ROOT = path.join(__dirname, '..');
 const OUT = path.join(__dirname, 'output');
 const event = JSON.parse(fs.readFileSync(path.join(ROOT, 'shared', 'event.json'), 'utf8'));
 
+// --- A custom agenda (run-sheet/agenda.json, saved by Grok Bot's save_run_sheet) replaces the standard
+// meetup template, but only if it was written for THIS event ---
+const AGENDA_FILE = path.join(__dirname, 'agenda.json');
+const agenda = fs.existsSync(AGENDA_FILE) ? JSON.parse(fs.readFileSync(AGENDA_FILE, 'utf8')) : null;
+const custom = agenda && agenda.event === event.name && Array.isArray(agenda.blocks) && agenda.blocks.length ? agenda : null;
+const toMin = (t) => { const [h, m] = String(t).split(':').map(Number); return h * 60 + m; };
+
 // --- How long the event runs (default 3 hours, or --hours N) ---
 const args = process.argv.slice(2);
 const hoursIdx = args.indexOf('--hours');
@@ -19,7 +26,7 @@ if (!(hours > 0)) { console.error('--hours needs a positive number, e.g. --hours
 // --- Time helpers. We count minutes from midnight on the event day. ---
 const [startH, startM] = event.time.split(':').map(Number);
 const startMin = startH * 60 + startM;
-const closeMin = startMin + Math.round(hours * 60);
+const closeMin = custom && custom.end_time ? toMin(custom.end_time) : startMin + Math.round(hours * 60);
 
 // Turn minutes-from-midnight into "HH:MM" (wraps past midnight).
 function hhmm(min) {
@@ -39,7 +46,7 @@ const talks2 = r5(main * 0.3);
 const networkingStart = welcomeEnd + talks1 + breakLen + talks2;
 const hostNames = event.hosts.join(' and ');
 
-const blocks = [
+let blocks = [
   { min: startMin - 60, what: 'Volunteers arrive', who: 'Lead', notes: 'Briefing, hand out roles, check the venue is open.' },
   { min: startMin - 55, what: 'Setup', who: 'AV, Food, Door', notes: 'Test projector and mic, lay out signage, set up the welcome table.' },
   { min: startMin - 15, what: 'Doors open', who: 'Door', notes: 'Greet guests, tick off names, point people to drinks.' },
@@ -51,16 +58,30 @@ const blocks = [
   { min: closeMin, what: 'Close', who: 'Lead', notes: 'Thank everyone, next event date, nudge people out.' },
   { min: closeMin + 30, what: 'Pack-down', who: 'Lead, AV, Food, Door, Floater', notes: 'Bins out, kit packed, venue left as found.' },
 ];
+if (custom) {
+  // The lead's own programme, wrapped in the usual backstage blocks (arrive, setup, close, pack-down)
+  const own = custom.blocks.map((b) => ({ min: toMin(b.time), what: b.what, who: b.who || 'Lead', notes: b.notes || '' }));
+  const first = Math.min(...own.map((b) => b.min));
+  blocks = [
+    { min: first - 60, what: 'Volunteers arrive', who: 'Lead', notes: 'Briefing, hand out roles, check the venue is open.' },
+    { min: first - 55, what: 'Setup', who: 'AV, Food, Door', notes: 'Test projector and mic, lay out signage, set up the welcome table.' },
+    ...own,
+    ...(own.some((b) => /close/i.test(b.what)) ? [] : [{ min: closeMin, what: 'Close', who: 'Lead', notes: 'Thank everyone and nudge people out.' }]),
+    { min: closeMin + 30, what: 'Pack-down', who: 'Lead, AV, Food, Door, Floater', notes: 'Bins out, kit packed, venue left as found.' },
+  ].sort((a, b) => a.min - b.min);
+}
 const rows = blocks.map((b) => ({ time: hhmm(b.min), what: b.what, who: b.who, notes: b.notes }));
 const packDownEnd = closeMin + 60;
 
 // --- Budget: made-up starting numbers sized by guest_count ---
 const n = event.guest_count;
-const budget = [
-  ['Pizza', '~£3 x ' + n, 3 * n],
-  ['Drinks', '~£2 x ' + n, 2 * n],
-  ['Printing (signs, name labels)', 'flat', 20],
-];
+const budget = custom && Array.isArray(custom.budget) && custom.budget.length
+  ? custom.budget.map((b) => [b.item, b.how || '', Number(b.amount) || 0])
+  : [
+    ['Pizza', '~£3 x ' + n, 3 * n],
+    ['Drinks', '~£2 x ' + n, 2 * n],
+    ['Printing (signs, name labels)', 'flat', 20],
+  ];
 const budgetTotal = budget.reduce((s, b) => s + b[2], 0);
 
 // --- run-sheet.md ---
@@ -85,13 +106,13 @@ md.push('| Role | Name | Shift |');
 md.push('|---|---|---|');
 md.push('| Lead | | ' + hhmm(startMin - 60) + ' - ' + hhmm(packDownEnd) + ' |');
 md.push('| Door | | ' + hhmm(startMin - 55) + ' - ' + hhmm(startMin + 45) + ' |');
-md.push('| AV | | ' + hhmm(startMin - 55) + ' - ' + hhmm(networkingStart) + ' |');
+md.push('| AV | | ' + hhmm(startMin - 55) + ' - ' + hhmm(custom ? closeMin : networkingStart) + ' |');
 md.push('| Food | | ' + hhmm(startMin - 55) + ' - ' + hhmm(packDownEnd) + ' |');
 md.push('| Floater | | ' + hhmm(startMin - 15) + ' - ' + hhmm(packDownEnd) + ' |');
 md.push('');
 md.push('## Suggested budget');
 md.push('');
-md.push('**Made-up starting numbers, edit before use.** Sized for ' + n + ' guests.');
+md.push(custom && custom.budget && custom.budget.length ? 'Budget from the lead (saved with the agenda).' : '**Made-up starting numbers, edit before use.** Sized for ' + n + ' guests.');
 md.push('');
 md.push('| Item | Basis | Cost |');
 md.push('|---|---|---|');
@@ -166,7 +187,7 @@ const ics = lines.map(fold).join('\r\n') + '\r\n';
 // --- Write everything ---
 fs.mkdirSync(OUT, { recursive: true });
 fs.writeFileSync(path.join(OUT, 'run-sheet.md'), md.join('\n'));
-console.log('Wrote run-sheet/output/run-sheet.md (' + rows.length + ' timed blocks, rota, budget, checklist)');
+console.log('Wrote run-sheet/output/run-sheet.md (' + rows.length + ' timed blocks' + (custom ? ' from the custom agenda' : '') + ', rota, budget, checklist)');
 fs.writeFileSync(path.join(OUT, 'run-sheet.json'), JSON.stringify(rows, null, 2) + '\n');
 console.log('Wrote run-sheet/output/run-sheet.json (' + rows.length + ' blocks)');
 fs.writeFileSync(path.join(OUT, 'event.ics'), ics);
