@@ -43,7 +43,7 @@ const blocks = [
   { min: startMin - 60, what: 'Volunteers arrive', who: 'Lead', notes: 'Briefing, hand out roles, check the venue is open.' },
   { min: startMin - 55, what: 'Setup', who: 'AV, Food, Door', notes: 'Test projector and mic, lay out signage, set up the welcome table.' },
   { min: startMin - 15, what: 'Doors open', who: 'Door', notes: 'Greet guests, tick off names, point people to drinks.' },
-  { min: startMin, what: 'Welcome', who: 'Lead', notes: 'Hosts ' + hostNames + ' say hello, housekeeping, the plan for the night.' },
+  { min: startMin, what: 'Welcome', who: 'Lead', notes: (event.hosts && event.hosts.length > 1 ? 'Hosts ' + hostNames + ' say hello' : 'Host ' + hostNames + ' says hello') + ', housekeeping, the plan for the night.' },
   { min: welcomeEnd, what: 'Talks and demos, part 1', who: 'AV', notes: 'Keep each demo to time. Floater watches the door.' },
   { min: welcomeEnd + talks1, what: 'Break', who: 'Food', notes: 'Food and drinks out. Quick room reset.' },
   { min: welcomeEnd + talks1 + breakLen, what: 'Talks and demos, part 2', who: 'AV', notes: 'Second round of demos and feedback.' },
