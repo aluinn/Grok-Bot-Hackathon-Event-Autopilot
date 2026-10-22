@@ -1,0 +1,117 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Event Autopilot//Run Sheet//EN
+CALSCALE:GREGORIAN
+BEGIN:VEVENT
+UID:london-builders-night-ship-it-in-one-eve-2026-11-12@event-autopilot
+DTSTAMP:20261022T190133Z
+DTSTART:20261112T183000Z
+DTEND:20261112T213000Z
+SUMMARY:London Builders Night: Ship It in One Evening
+LOCATION:Tech Hub Shoreditch\, London
+DESCRIPTION:An informal evening for makers\, designers and founders to demo
+  what they are building\, swap feedback and meet other local builders.
+END:VEVENT
+BEGIN:VEVENT
+UID:london-builders-night-ship-it-in-one-eve-2026-11-12-block-1@event-autop
+ ilot
+DTSTAMP:20261022T190133Z
+DTSTART:20261112T173000Z
+DTEND:20261112T173500Z
+SUMMARY:[Volunteers] Volunteers arrive (Lead)
+LOCATION:Tech Hub Shoreditch\, London
+DESCRIPTION:Briefing\, hand out roles\, check the venue is open.
+END:VEVENT
+BEGIN:VEVENT
+UID:london-builders-night-ship-it-in-one-eve-2026-11-12-block-2@event-autop
+ ilot
+DTSTAMP:20261022T190133Z
+DTSTART:20261112T173500Z
+DTEND:20261112T181500Z
+SUMMARY:[Volunteers] Setup (AV\, Food\, Door)
+LOCATION:Tech Hub Shoreditch\, London
+DESCRIPTION:Test projector and mic\, lay out signage\, set up the welcome t
+ able.
+END:VEVENT
+BEGIN:VEVENT
+UID:london-builders-night-ship-it-in-one-eve-2026-11-12-block-3@event-autop
+ ilot
+DTSTAMP:20261022T190133Z
+DTSTART:20261112T181500Z
+DTEND:20261112T183000Z
+SUMMARY:[Volunteers] Doors open (Door)
+LOCATION:Tech Hub Shoreditch\, London
+DESCRIPTION:Greet guests\, tick off names\, point people to drinks.
+END:VEVENT
+BEGIN:VEVENT
+UID:london-builders-night-ship-it-in-one-eve-2026-11-12-block-4@event-autop
+ ilot
+DTSTAMP:20261022T190133Z
+DTSTART:20261112T183000Z
+DTEND:20261112T184500Z
+SUMMARY:[Volunteers] Welcome (Lead)
+LOCATION:Tech Hub Shoreditch\, London
+DESCRIPTION:Hosts Aluinn McDonald and Sam Patel say hello\, housekeeping\, 
+ the plan for the night.
+END:VEVENT
+BEGIN:VEVENT
+UID:london-builders-night-ship-it-in-one-eve-2026-11-12-block-5@event-autop
+ ilot
+DTSTAMP:20261022T190133Z
+DTSTART:20261112T184500Z
+DTEND:20261112T193500Z
+SUMMARY:[Volunteers] Talks and demos\, part 1 (AV)
+LOCATION:Tech Hub Shoreditch\, London
+DESCRIPTION:Keep each demo to time. Floater watches the door.
+END:VEVENT
+BEGIN:VEVENT
+UID:london-builders-night-ship-it-in-one-eve-2026-11-12-block-6@event-autop
+ ilot
+DTSTAMP:20261022T190133Z
+DTSTART:20261112T193500Z
+DTEND:20261112T195000Z
+SUMMARY:[Volunteers] Break (Food)
+LOCATION:Tech Hub Shoreditch\, London
+DESCRIPTION:Food and drinks out. Quick room reset.
+END:VEVENT
+BEGIN:VEVENT
+UID:london-builders-night-ship-it-in-one-eve-2026-11-12-block-7@event-autop
+ ilot
+DTSTAMP:20261022T190133Z
+DTSTART:20261112T195000Z
+DTEND:20261112T204000Z
+SUMMARY:[Volunteers] Talks and demos\, part 2 (AV)
+LOCATION:Tech Hub Shoreditch\, London
+DESCRIPTION:Second round of demos and feedback.
+END:VEVENT
+BEGIN:VEVENT
+UID:london-builders-night-ship-it-in-one-eve-2026-11-12-block-8@event-autop
+ ilot
+DTSTAMP:20261022T190133Z
+DTSTART:20261112T204000Z
+DTEND:20261112T213000Z
+SUMMARY:[Volunteers] Networking (Floater)
+LOCATION:Tech Hub Shoreditch\, London
+DESCRIPTION:Introduce people who are standing alone. Music low.
+END:VEVENT
+BEGIN:VEVENT
+UID:london-builders-night-ship-it-in-one-eve-2026-11-12-block-9@event-autop
+ ilot
+DTSTAMP:20261022T190133Z
+DTSTART:20261112T213000Z
+DTEND:20261112T220000Z
+SUMMARY:[Volunteers] Close (Lead)
+LOCATION:Tech Hub Shoreditch\, London
+DESCRIPTION:Thank everyone\, next event date\, nudge people out.
+END:VEVENT
+BEGIN:VEVENT
+UID:london-builders-night-ship-it-in-one-eve-2026-11-12-block-10@event-auto
+ pilot
+DTSTAMP:20261022T190133Z
+DTSTART:20261112T220000Z
+DTEND:20261112T223000Z
+SUMMARY:[Volunteers] Pack-down (Lead\, AV\, Food\, Door\, Floater)
+LOCATION:Tech Hub Shoreditch\, London
+DESCRIPTION:Bins out\, kit packed\, venue left as found.
+END:VEVENT
+END:VCALENDAR

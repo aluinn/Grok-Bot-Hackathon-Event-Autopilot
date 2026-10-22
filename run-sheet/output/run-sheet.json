@@ -1,0 +1,62 @@
+[
+  {
+    "time": "17:30",
+    "what": "Volunteers arrive",
+    "who": "Lead",
+    "notes": "Briefing, hand out roles, check the venue is open."
+  },
+  {
+    "time": "17:35",
+    "what": "Setup",
+    "who": "AV, Food, Door",
+    "notes": "Test projector and mic, lay out signage, set up the welcome table."
+  },
+  {
+    "time": "18:15",
+    "what": "Doors open",
+    "who": "Door",
+    "notes": "Greet guests, tick off names, point people to drinks."
+  },
+  {
+    "time": "18:30",
+    "what": "Welcome",
+    "who": "Lead",
+    "notes": "Hosts Aluinn McDonald and Sam Patel say hello, housekeeping, the plan for the night."
+  },
+  {
+    "time": "18:45",
+    "what": "Talks and demos, part 1",
+    "who": "AV",
+    "notes": "Keep each demo to time. Floater watches the door."
+  },
+  {
+    "time": "19:35",
+    "what": "Break",
+    "who": "Food",
+    "notes": "Food and drinks out. Quick room reset."
+  },
+  {
+    "time": "19:50",
+    "what": "Talks and demos, part 2",
+    "who": "AV",
+    "notes": "Second round of demos and feedback."
+  },
+  {
+    "time": "20:40",
+    "what": "Networking",
+    "who": "Floater",
+    "notes": "Introduce people who are standing alone. Music low."
+  },
+  {
+    "time": "21:30",
+    "what": "Close",
+    "who": "Lead",
+    "notes": "Thank everyone, next event date, nudge people out."
+  },
+  {
+    "time": "22:00",
+    "what": "Pack-down",
+    "who": "Lead, AV, Food, Door, Floater",
+    "notes": "Bins out, kit packed, venue left as found."
+  }
+]

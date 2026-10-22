@@ -1,0 +1,24 @@
+{
+  "name": "event-autopilot",
+  "version": "0.1.0",
+  "private": true,
+  "description": "One event in: run sheet, visuals, newsletter and posts out. Nothing is sent until the lead clicks Approve.",
+  "license": "MIT",
+  "scripts": {
+    "autopilot": "node autopilot.js",
+    "intake:luma": "node intake/from-luma.js",
+    "intake:text": "node intake/from-text.js",
+    "copy": "node copy-generator/generate.js",
+    "visuals": "node visuals/render.js",
+    "runsheet": "node run-sheet/build.js",
+    "sponsors": "node sponsors/find.js",
+    "outreach": "node sponsors/draft-outreach.js",
+    "dashboard": "node promo-and-approval-ui/dashboard/server.js",
+    "grok-bot": "node grok-bot/server.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "puppeteer": "^25.15.0",
+    "zod": "^4.6.7"
+  }
+}
