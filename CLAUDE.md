@@ -36,12 +36,12 @@ Images (posters, social cards, etc.) are made by filling HTML/CSS templates with
 
 Use these in every template and page:
 
-- Background: `#TODO`
-- Accent: `#TODO`
-- Text: `#TODO`
-- Fonts: `TODO`
+- Background: `#0B0B0F` (cards `#16161D`)
+- Accent: `#FF5A1F`
+- Text: `#F5F5F7` (muted `#9A9AA5`)
+- Fonts: Space Grotesk for headings, Inter for body (Google Fonts)
 
-> The brand values above were left blank. Replace each `TODO` with the real value, then delete this note.
+Full guide, logo and rules of thumb (no gradients, no shadows): `brand/brand.md`.
 
 ## Parts of the project
 

@@ -32,7 +32,7 @@ Tiago builds the engine behind the screen; aluinn owns the screen the lead uses 
 | Sending after Approve | Tiago | The UI's Approve button posts to Discord and creates the Ghost draft | `sending/` |
 | Grok Bot + Cognee wiring (MCP server) | Tiago | Grok Bot can make, write and render an event by chat | `grok-bot/` |
 | Run sheet + calendar invite | Tiago | Timed run sheet and an .ics file for the event | `run-sheet/` |
-| Brand (colours, fonts, logo) | aluinn | The TODOs in CLAUDE.md are filled in | `CLAUDE.md`, `brand/` |
+| Brand (colours, fonts, logo) | aluinn | Done: brand/brand.md and logo.svg | `CLAUDE.md`, `brand/` |
 | Community voice samples | aluinn | 5-10 past event descriptions and posts, loaded into Cognee | `voice/` |
 | Hours-saved numbers | aluinn | Minutes per task from 3+ real leads on the night | `shared/hours.json` |
 | Partner help on the night (Luma, Ghost, Notion, Grok) | aluinn | API keys and answers collected in the first hour | `.env` (never committed) |
@@ -130,7 +130,7 @@ If the live demo breaks, play the backup recording and keep talking. Record it i
 
 These block the build, so decide them together before splitting up.
 
-- [ ] **Brand:** background, accent and text colours plus fonts, to replace the TODOs in CLAUDE.md (aluinn)
+- [x] **Brand:** done. brand/brand.md: dark #0B0B0F, orange accent #FF5A1F, text #F5F5F7, Space Grotesk + Inter, no gradients or shadows (aluinn)
 - [ ] **Demo event:** which real Luma event we use, ideally one from a community whose lead is in the room (aluinn)
 - [ ] **Grok API key:** who gets it, and from which partner on the night (aluinn)
 - [ ] **Run sheet data:** CLAUDE.md says no new fields without asking. OK to add `run_sheet` to promo.json? Same question for keeping the voice samples in Cognee. (both)
