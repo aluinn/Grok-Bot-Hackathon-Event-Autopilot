@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<!-- Demo page for the Autopilot assistant widget, with FAKE event and promo data, so you can try it in a browser.
+     Open it by double-clicking this file (no server needed).
+     The two lines that add the widget to any page are the <link> and the <script> at the very bottom. -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Autopilot assistant: demo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; padding: 40px 24px 160px; background: #0B0B0F; color: #F5F5F7; font: 16px/1.6 "Geist", system-ui, sans-serif; }
+    main { max-width: 760px; margin: 0 auto; }
+    h1 { margin: 0 0 6px; font-size: 28px; letter-spacing: -0.02em; }
+    .muted { color: #9A9AA5; }
+    .label { font: 500 11px "Geist Mono", monospace; letter-spacing: 0.12em; text-transform: uppercase; color: #9A9AA5; }
+    .card { margin-top: 14px; padding: 18px 20px; background: #16161D; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; }
+    .card.approved { border-color: rgba(47, 191, 113, 0.5); }
+    .card.flash { animation: flash 1.2s ease-out; }
+    @keyframes flash { from { background: rgba(255, 90, 31, 0.18); } to { background: #16161D; } }
+    .row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .card p { margin: 10px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+    #log { margin-top: 28px; font: 12px/1.5 "Geist Mono", monospace; color: #9A9AA5; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .tools { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 8px; }
+
+    /* These page-wide rules are copied from the real dashboard on purpose. They are aggressive, and the widget
+       must look right anyway: that is what its sealed "shadow root" is for. */
+    button { height: 40px; padding: 0 18px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.12); background: transparent; color: #F5F5F7; font: 500 14px "Geist", sans-serif; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+    button:hover { background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.3); }
+    button.on { background: rgba(47, 191, 113, 0.14); border-color: rgba(47, 191, 113, 0.5); color: #2FBF71; }
+    textarea { width: 100%; min-height: 170px; margin-bottom: 16px; padding: 16px 18px; background: #0B0B0F; color: #F5F5F7; border: 2px solid #26262F; border-radius: 12px; font-size: 18px; resize: vertical; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Autopilot assistant: demo</h1>
+    <p class="muted">Fake data. Click the round button at the bottom left. Press <b>Apply</b> on a suggestion to see the matching card change below. Nothing here is real, and the assistant never approves or sends anything.</p>
+
+    <div class="label" style="margin-top:28px">Fake review cards (like the dashboard)</div>
+    <div id="cards"></div>
+
+    <div class="label" style="margin-top:28px">Try plugging in a different assistant (setHandler)</div>
+    <div class="tools">
+      <button id="use-pretend">Pretend real assistant</button>
+      <button id="use-failing">Assistant that fails</button>
+      <button id="use-garbage">Assistant that sends junk</button>
+      <button id="use-demo">Back to the demo assistant</button>
+    </div>
+
+    <div class="label" style="margin-top:28px">Events the page received (autopilot:apply)</div>
+    <div id="log">Nothing yet.</div>
+  </main>
+
+  <script>
+    // ---- Fake data, in the same shapes as data/event.json and data/promo.json ----
+    window.EVENT = {
+      name: "London Builders Night: Ship It in One Evening",
+      date: "2026-11-12", time: "18:30", venue: "Tech Hub Shoreditch, London",
+      description: "An informal evening for makers to demo what they are building.",
+      hosts: ["Aluinn McDonald", "Tiago"], guest_count: 84,
+    };
+    window.PROMO = {
+      page_copy: "Join us for London Builders Night on 12 November at Tech Hub Shoreditch. Bring something you're building, demo it in five minutes and get honest feedback from people who've been there. Pizza, drinks and great company included.",
+      newsletter: { subject: "You're invited: London Builders Night, 12 Nov", body: "Hi there,\n\nWe're hosting London Builders Night on Thursday 12 November at 18:30.\n\nBring a friend." },
+      posts: {
+        linkedin: "We're hosting London Builders Night on 12 Nov at Tech Hub Shoreditch. It's an easy, friendly evening of five-minute demos and honest feedback from people who have been there before. 84 builders are already going, and we'd love you to join us. Pizza and drinks are on us, so come hungry. Bring something you're building and show the room what you've made.",
+        whatsapp: "Hey! London Builders Night is on 12 Nov, 18:30 at Tech Hub Shoreditch. 84 people are going. Want in? Bring a friend!",
+        discord: "@everyone London Builders Night is happening 12 Nov, 18:30, Tech Hub Shoreditch. Demos, feedback, pizza. 84 going so far, reply here if you're joining!",
+      },
+    };
+    window.APPROVED = ["page_copy"]; // the ids the lead has approved so far
+
+    // ---- Fake review cards ----
+    const ITEMS = [["page_copy", "Event page copy"], ["newsletter", "Newsletter"], ["linkedin", "LinkedIn post"], ["whatsapp", "WhatsApp post"], ["discord", "Discord post"], ["images", "Promo images"]];
+    const textOf = (id) => id === "page_copy" ? PROMO.page_copy : id === "newsletter" ? PROMO.newsletter.body : id === "images" ? "(three pictures)" : PROMO.posts[id];
+
+    function drawCards() {
+      const box = document.getElementById("cards");
+      box.replaceChildren();
+      ITEMS.forEach(([id, title]) => {
+        const approved = APPROVED.includes(id);
+        const card = document.createElement("div");
+        card.className = "card" + (approved ? " approved" : "");
+        card.id = "card-" + id;
+        const row = document.createElement("div");
+        row.className = "row";
+        const name = document.createElement("strong");
+        name.textContent = title;
+        const approve = document.createElement("button");
+        approve.textContent = approved ? "Approved" : "Approve";
+        approve.className = approved ? "on" : "";
+        approve.addEventListener("click", () => { // the page, not the assistant, decides what is approved
+          window.APPROVED = approved ? APPROVED.filter((x) => x !== id) : [...APPROVED, id];
+          drawCards();
+        });
+        row.append(name, approve);
+        const text = document.createElement("p");
+        text.textContent = textOf(id);
+        card.append(row, text);
+        box.appendChild(card);
+      });
+    }
+    drawCards();
+
+    // ---- What a dashboard would do when the user clicks "Apply" in the assistant ----
+    let count = 0;
+    document.addEventListener("autopilot:apply", (e) => {
+      const { target, newText } = e.detail;
+      if (target === "page_copy") PROMO.page_copy = newText;
+      else if (target === "newsletter") PROMO.newsletter.body = newText;
+      else if (PROMO.posts[target] !== undefined) PROMO.posts[target] = newText;
+      else return;
+      window.APPROVED = APPROVED.filter((x) => x !== target); // changed text must be approved again
+      drawCards();
+      document.getElementById("card-" + target).classList.add("flash");
+      count += 1;
+      document.getElementById("log").textContent = "Event #" + count + "\n" + JSON.stringify(e.detail, null, 2);
+    });
+
+    // ---- Buttons to try setHandler ----
+    const pretendReal = (message) => new Promise((done) => setTimeout(() => done({ reply: 'This answer came from a pretend "real" assistant. You asked: ' + message, action: { type: "update_text", target: "whatsapp", newText: "Pretend real suggestion: see you at London Builders Night!" } }), 800));
+    const failing = () => Promise.reject(new Error("The server could not be reached"));
+    const garbage = () => Promise.resolve({ nothing: "useful" });
+    document.getElementById("use-pretend").addEventListener("click", () => AutopilotAssistant.setHandler(pretendReal));
+    document.getElementById("use-failing").addEventListener("click", () => AutopilotAssistant.setHandler(failing));
+    document.getElementById("use-garbage").addEventListener("click", () => AutopilotAssistant.setHandler(garbage));
+    document.getElementById("use-demo").addEventListener("click", () => AutopilotAssistant.setHandler());
+  </script>
+
+  <!-- THE TWO LINES that add the assistant to a page -->
+  <link rel="stylesheet" href="assistant.css">
+  <script src="assistant.js"></script>
+</body>
+</html>
