@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<!-- Event Autopilot template: square (1080x1080). Self-contained: all styling and code is in this one file.
+     Data: uses window.EVENT if it exists, otherwise loads ../data/event.json. See templates/README.md. -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Event Autopilot - square</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    /* Brand: background #0B0B0F, accent #FF5A1F, text #F5F5F7, muted #9A9AA5. No gradients or shadows. */
+    * { box-sizing: border-box; margin: 0; }
+    html, body { width: 1080px; height: 1080px; }
+    body {
+      --pad:90px; --left:114px; --top:90px; --bottom:90px; --bar:24px; --logo:340px; --small:32px; --name:104px; --name-max:520px; --body:44px; --venue-max:130px; --hosts-max:90px; --badge:44px; --gap:36px;
+      position: relative; overflow: hidden;
+      background: #0B0B0F; color: #F5F5F7; font-family: "Inter", sans-serif;
+      display: flex; flex-direction: column;
+      padding: var(--top) var(--pad) var(--bottom) var(--left);
+    }
+    /* Thick orange bar on the left edge */
+    body::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: var(--bar); background: #FF5A1F; }
+
+    .logo { width: var(--logo); display: block; }
+
+    /* The middle area takes the spare space. Boxes inside keep their size (flex-shrink 0)
+       and the code below shrinks the text until it fits. */
+    .main { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: center; padding: 16px 0; }
+    .main > * { flex-shrink: 0; }
+
+    .name  { font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: var(--name); line-height: 1.08; overflow-wrap: anywhere; max-height: var(--name-max); overflow: hidden; }
+    .when  { font-family: "Space Grotesk", sans-serif; font-weight: 500; font-size: var(--body); color: #FF5A1F; margin-top: var(--gap); white-space: nowrap; overflow: hidden; }
+    .venue { font-size: var(--body); margin-top: 12px; overflow-wrap: anywhere; max-height: var(--venue-max); overflow: hidden; }
+    .hosts { font-size: var(--small); color: #9A9AA5; margin-top: 12px; overflow-wrap: anywhere; max-height: var(--hosts-max); overflow: hidden; }
+
+    .footer { display: flex; align-items: center; min-height: 1px; }
+    .badge { background: #FF5A1F; color: #0B0B0F; font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: var(--badge); padding: 0.35em 0.9em; border-radius: 999px; }
+  </style>
+</head>
+<body>
+  <!-- Logo (same as brand/logo.svg) -->
+  <svg class="logo" viewBox="0 0 580 96" role="img" aria-label="Event Autopilot">
+    <text x="0" y="70" font-family="Space Grotesk, sans-serif" font-weight="700" font-size="72" fill="#F5F5F7">Event Autopilot</text>
+    <circle cx="556" cy="60" r="10" fill="#FF5A1F"/>
+  </svg>
+
+  <div class="main">
+    <div class="name" id="name" data-fit></div>
+    <div class="when" id="when" data-fit></div>
+    <div class="venue" id="venue" data-fit></div>
+    <div class="hosts" id="hosts" data-fit></div>
+  </div>
+
+  <div class="footer"><div class="badge" id="badge"></div></div>
+
+  <script>
+    // "2026-11-12" becomes "Thursday, 12 November 2026" (if it isn't a real date, show it as typed)
+    function prettyDate(date) {
+      const d = new Date(date + "T12:00:00");
+      if (isNaN(d)) return date;
+      return d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+    }
+    // Join names: "A", "A & B", "A, B & C"
+    function joinHosts(hosts) {
+      return hosts.length <= 1 ? hosts.join("") : hosts.slice(0, -1).join(", ") + " & " + hosts[hosts.length - 1];
+    }
+    // Put text in a box, or hide the box if there is nothing to show
+    function setText(id, text) {
+      const el = document.getElementById(id);
+      el.textContent = text || "";
+      el.style.display = text ? "" : "none";
+    }
+    // Shrink any text marked data-fit until it fits its box, so nothing is cut off
+    function fitText() {
+      document.querySelectorAll("[data-fit]").forEach((el) => {
+        el.style.fontSize = ""; // start from the normal size
+        let size = parseFloat(getComputedStyle(el).fontSize);
+        const maxHeight = parseFloat(getComputedStyle(el).maxHeight); // tallest the box may be (NaN if no limit)
+        const tooBig = () => (maxHeight && el.scrollHeight > maxHeight) || el.scrollWidth > el.clientWidth + 1;
+        while (tooBig() && size > 14) { size -= 2; el.style.fontSize = size + "px"; }
+      });
+    }
+    // Fill the page with an event. Tiago's renderer can call this too: window.renderEvent(eventObject)
+    async function renderEvent(event) {
+      document.body.removeAttribute("data-ready");
+      const hosts = Array.isArray(event.hosts) ? event.hosts.filter(Boolean) : [];
+      const when = [event.date ? prettyDate(event.date) : "", event.time || ""].filter(Boolean).join(" · ");
+      const hasGuests = event.guest_count !== undefined && event.guest_count !== null && event.guest_count !== "" && !isNaN(Number(event.guest_count));
+      setText("name", event.name || "Upcoming event");
+      setText("when", when);
+      setText("venue", event.venue);
+      setText("hosts", hosts.length ? "Hosted by " + joinHosts(hosts) : "");
+      setText("badge", hasGuests ? event.guest_count + " going" : "");
+      await document.fonts.ready; // measure only after the fonts have loaded
+      fitText();
+      document.body.setAttribute("data-ready", "yes"); // signal: the picture is ready to photograph
+    }
+    window.renderEvent = renderEvent;
+
+    async function start() {
+      let event = window.EVENT; // set by the renderer, if it injects data
+      if (!event) {
+        try { event = await (await fetch("../data/event.json")).json(); }
+        catch (e) { setText("name", "Could not load ../data/event.json. See templates/README.md"); document.body.setAttribute("data-ready", "yes"); return; }
+      }
+      renderEvent(event);
+    }
+    start();
+  </script>
+</body>
+</html>
