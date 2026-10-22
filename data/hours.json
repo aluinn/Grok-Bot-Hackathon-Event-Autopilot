@@ -1,0 +1,12 @@
+{
+  "tasks": {
+    "event_page_copy": { "minutes": 45, "source": "team guess" },
+    "visuals": { "minutes": 120, "source": "team guess" },
+    "newsletter": { "minutes": 60, "source": "team guess" },
+    "social_posts": { "minutes": 45, "source": "team guess" },
+    "run_sheet_and_calendar_invite": { "minutes": 60, "source": "team guess" }
+  },
+  "total_minutes": 330,
+  "leads_surveyed": [],
+  "volunteers_per_event": null
+}
