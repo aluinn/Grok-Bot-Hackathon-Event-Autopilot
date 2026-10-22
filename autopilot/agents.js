@@ -27,7 +27,7 @@ function minutesFor(id) {
   const tasks = (readJson("data/hours.json") || {}).tasks || {};
   const fromHours = { copy: ["event_page_copy", "newsletter", "social_posts"], visuals: ["visuals"], runsheet: ["run_sheet_and_calendar_invite"] };
   if (fromHours[id]) return { minutes: fromHours[id].reduce((sum, t) => sum + ((tasks[t] || {}).minutes || 0), 0), source: "data/hours.json" };
-  const estimates = { intake: 10, sponsors: 90, outreach: 60, page: 45, supabase: 10, memory: 0, remember: 0 };
+  const estimates = { intake: 10, sponsors: 90, outreach: 60, page: 45, newsletter: 30, supabase: 10, memory: 0, remember: 0, digest: 30 };
   return { minutes: estimates[id] || 0, source: "team estimate" };
 }
 
@@ -98,7 +98,7 @@ function outreachSummary(run) {
 // or throws an Error (state "error") or an object { skipped: "why" } (state "skipped").
 
 function buildAgents(input) {
-  const isLuma = /lu\.ma\//.test(input) || /^evt-[A-Za-z0-9]+$/.test(input);
+  const isLuma = /(lu\.ma|luma\.com)\//.test(input) || /^evt-[A-Za-z0-9]+$/.test(input);
   const script = (rel, args, show) => async () => {
     const run = await runScript(rel, args);
     // Scripts print their reason on stdout or stderr, so look at both
@@ -141,6 +141,12 @@ function buildAgents(input) {
 
     { id: "page", name: "Web page agent", needs: ["copy", "visuals", "runsheet"],
       run: script("event-page/build.js", [], (run) => ({ summary: "Event page built (draft, not published)", output: { type: "link", value: "/event-page/" } })) },
+
+    { id: "digest", name: "Digest agent (this week on Luma)", needs: [],
+      run: script("digest/fetch-week.js", [], (run) => ({ summary: lastMeaningfulLine(run.stdout), output: { type: "link", value: "/digest.html" } })) },
+
+    { id: "newsletter", name: "Newsletter agent", needs: ["copy"],
+      run: script("newsletter/build.js", [], (run) => ({ summary: "Branded email built from the newsletter copy (draft, not sent)", output: { type: "link", value: "/newsletter/" } })) },
 
     { id: "supabase", name: "Database agent (Supabase)", needs: ["page"],
       run: async () => {

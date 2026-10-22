@@ -124,6 +124,16 @@ function drawCard(item) {
     if (approved && SEND_LABELS[item.id]) {
       buttons.appendChild(button(SEND_LABELS[item.id], "send", (e) => sendItem(item, e.currentTarget)));
     }
+    // Preview links: the event page (for the page copy) and the branded email (for the newsletter)
+    if (PREVIEW_LINKS[item.id]) {
+      const link = document.createElement("a");
+      link.className = "button";
+      link.href = PREVIEW_LINKS[item.id].href;
+      link.target = "_blank";
+      link.rel = "noopener";
+      link.textContent = PREVIEW_LINKS[item.id].label;
+      buttons.appendChild(link);
+    }
     if (!item.isImages) {
       // Approve (and send) on the left; the quieter tools on the right
       const spacer = document.createElement("span");
@@ -322,10 +332,17 @@ function regenerate(item) {
 // ---------- Sending (only after Approve) ----------
 // What the send button says for each item. Items not listed here have no send button.
 const SEND_LABELS = {
+  page_copy: "Publish event page",
   discord: "Post to Discord",
   newsletter: "Save Ghost draft",
   whatsapp: "Open in WhatsApp",
   linkedin: "Open in LinkedIn",
+};
+
+// "View" links shown on a card whether or not it is approved (they only preview, never send)
+const PREVIEW_LINKS = {
+  page_copy: { href: "/event-page/", label: "View event page" },
+  newsletter: { href: "/newsletter/", label: "View email" },
 };
 
 async function sendItem(item, buttonEl) {
@@ -334,6 +351,20 @@ async function sendItem(item, buttonEl) {
   if (!approved) return alert("Approve this item first."); // belt and braces: the server refuses too
   buttonEl.textContent = "Working...";
   try {
+    if (item.id === "page_copy") {
+      // Publishing puts the page online for everyone, so ask once more
+      if (!confirm("Put the event page online now? Anyone with the link will be able to see it.")) {
+        buttonEl.textContent = SEND_LABELS[item.id];
+        return;
+      }
+      buttonEl.textContent = "Publishing...";
+      const r = await (await fetch("/api/publish-page", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ approved: true, page_copy: c.text }) })).json();
+      if (r.error) throw new Error(r.error);
+      setState(item.id, { sentAt: new Date().toISOString(), publishedUrl: r.url });
+      buttonEl.textContent = "Published";
+      window.open(r.url, "_blank");
+      return;
+    }
     if (item.id === "whatsapp" || item.id === "linkedin") {
       // These platforms don't allow posting for you, so we open a pre-filled message to send by hand
       const r = await (await fetch("/api/share-link", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ channel: item.id, text: c.text }) })).json();

@@ -44,6 +44,7 @@ const ARROW_OUT = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8 4h8v8
 // real status, its own list of agents replaces this one.
 const PREVIEW_AGENTS = [
   { id: "intake", name: "Intake agent", wave: 1, needs: [], summary: "Turns your line or Luma link into the event details." },
+  { id: "digest", name: "Weekly digest", wave: 1, needs: [], summary: "Pulls this week's events from Luma for the digest." },
   { id: "memory", name: "Community memory", wave: 2, needs: ["intake"], summary: "Recalls past events so the copy sounds like you." },
   { id: "visuals", name: "Visuals", wave: 2, needs: ["intake"], summary: "Renders the promo images from the brand templates." },
   { id: "runsheet", name: "Run sheet", wave: 2, needs: ["intake"], summary: "Times the evening and makes a calendar invite." },
@@ -51,8 +52,9 @@ const PREVIEW_AGENTS = [
   { id: "copy", name: "Copywriter", wave: 3, needs: ["memory"], summary: "Writes the page copy, newsletter and posts." },
   { id: "outreach", name: "Outreach drafts", wave: 3, needs: ["sponsors"], summary: "Drafts one email per sponsor. Never sent." },
   { id: "page", name: "Event page", wave: 4, needs: ["copy", "visuals"], summary: "Builds the event page from the copy and images." },
-  { id: "supabase", name: "Database", wave: 4, needs: ["copy"], summary: "Saves the event so the team can find it." },
-  { id: "remember", name: "Remember", wave: 5, needs: ["page", "supabase"], summary: "Teaches the memory what worked this time." },
+  { id: "newsletter", name: "Newsletter", wave: 4, needs: ["copy"], summary: "Builds the branded email from the newsletter copy." },
+  { id: "remember", name: "Remember", wave: 4, needs: ["copy"], summary: "Teaches the memory what worked this time." },
+  { id: "supabase", name: "Database", wave: 5, needs: ["page"], summary: "Saves the event so the team can find it." },
 ].map((a) => ({ ...a, state: "queued", output: { type: "none" }, minutesSaved: 0 }));
 
 // ---------- Page state ----------

@@ -9,6 +9,20 @@ function fitFrame() {
   return true;
 }
 
+// Prefer this week's real Luma events (made by digest/fetch-week.js). If that file is missing or empty,
+// the newsletter keeps the sample events it already loaded from data/digest-sample.json.
+// We wait until the sample has finished drawing, so it can't overwrite the real events afterwards.
+frame.addEventListener("load", async () => {
+  try {
+    const r = await fetch("/data/digest-week.json");
+    const events = r.ok ? await r.json() : [];
+    if (!Array.isArray(events) || !events.length) return;
+    for (let i = 0; i < 40 && !frame.contentDocument.body.hasAttribute("data-ready"); i++) await new Promise((ok) => setTimeout(ok, 100));
+    await frame.contentWindow.renderDigest(events);
+    fitFrame();
+  } catch (e) { /* no live file: the sample stays */ }
+});
+
 // Check every 100ms (for up to 4 seconds) until the newsletter is ready
 frame.addEventListener("load", () => {
   let tries = 0;

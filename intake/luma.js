@@ -6,7 +6,7 @@ const LUMA_API = "https://api.lu.ma/event/get?event_api_id=";
 // Pull the event code out of whatever the lead pasted
 function lumaIdFrom(input) {
   const text = String(input).trim();
-  const match = text.match(/lu\.ma\/([A-Za-z0-9_-]+)/); // a link like https://lu.ma/gkmdzbk9
+  const match = text.match(/(?:lu\.ma|luma\.com)\/([A-Za-z0-9_-]+)/); // a link like https://lu.ma/gkmdzbk9 or luma.com/gkmdzbk9
   return match ? match[1] : text;                       // otherwise assume it's already the code or id
 }
 
@@ -40,7 +40,7 @@ async function fetchLumaEvent(input) {
   const where = event.geo_address_info || {};
   const venue = [where.address, where.city].filter(Boolean).join(", ")
     || (event.location_type === "online" ? "Online" : "Venue to be confirmed");
-  const description = (event.description_md || event.description || textFrom(event.description_mirror) || "").trim();
+  const description = (event.description_md || event.description || textFrom(event.description_mirror || data.description_mirror) || "").trim();
   const when = localDateTime(event.start_at, event.timezone);
 
   return {

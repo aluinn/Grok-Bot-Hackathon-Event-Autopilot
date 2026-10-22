@@ -187,6 +187,9 @@ function main() {
   }
   const event = JSON.parse(eventText);
   const promo = JSON.parse(read("shared/promo.json") || "null");
+  // --page-copy-file=<path>: use the lead's edited page copy from the dashboard instead of promo.json
+  const copyFile = process.argv.find((a) => a.startsWith("--page-copy-file="))?.slice(17);
+  if (copyFile && promo && fs.existsSync(copyFile)) promo.page_copy = fs.readFileSync(copyFile, "utf8");
   const runSheet = JSON.parse(read("run-sheet/output/run-sheet.json") || "[]");
   const rsvpUrl = process.argv.find((a) => a.startsWith("--rsvp="))?.slice(7) || "";
 

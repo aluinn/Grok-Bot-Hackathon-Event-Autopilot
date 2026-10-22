@@ -3,3 +3,6 @@ node_modules/
 sending/output/
 event-page/output/
 autopilot/output/
+event-page/site/
+newsletter/output/
+data/digest-week.json

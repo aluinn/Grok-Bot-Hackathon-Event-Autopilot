@@ -39,7 +39,13 @@ function toHtml(body) {
     .join("\n");
 }
 
-async function createGhostDraft({ subject, body, approved }) {
+// Wrap ready-made email HTML in a Ghost "HTML card" so Ghost keeps it exactly as designed
+function asHtmlCard(html) {
+  return `<!--kg-card-begin: html-->\n${html}\n<!--kg-card-end: html-->`;
+}
+
+// `html` (optional) is the branded email from newsletter/build.js; without it we fall back to plain paragraphs
+async function createGhostDraft({ subject, body, html, approved }) {
   if (approved !== true) {
     throw new Error("Refused: nothing is sent without the lead clicking Approve.");
   }
@@ -52,7 +58,7 @@ async function createGhostDraft({ subject, body, approved }) {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Ghost ${token}` },
     // status: "draft" is what keeps this a draft. Never change it to "published".
-    body: JSON.stringify({ posts: [{ title: subject, html: toHtml(body), status: "draft" }] }),
+    body: JSON.stringify({ posts: [{ title: subject, html: html ? asHtmlCard(html) : toHtml(body), status: "draft" }] }),
   });
 
   let data = {};

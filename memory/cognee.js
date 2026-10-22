@@ -13,9 +13,16 @@ function settings() {
   return { base: base.replace(/\/$/, ""), headers: { "Content-Type": "application/json", "X-Api-Key": key } };
 }
 
-async function call(path, body) {
+async function call(path, body, attempt = 1) {
   const s = settings();
-  const response = await fetch(s.base + path, { method: "POST", headers: s.headers, body: JSON.stringify(body) });
+  let response;
+  try {
+    response = await fetch(s.base + path, { method: "POST", headers: s.headers, body: JSON.stringify(body) });
+  } catch (err) {
+    // A dropped connection ("fetch failed") is usually a blip: wait a moment and try once more
+    if (attempt < 3) { await new Promise((r) => setTimeout(r, 2000 * attempt)); return call(path, body, attempt + 1); }
+    throw new Error(`Cognee could not be reached on ${path} (${err.cause?.code || err.message}).`);
+  }
   const textBody = await response.text();
   if (!response.ok) throw new Error(`Cognee replied with HTTP ${response.status} on ${path}: ${textBody.slice(0, 200)}`);
   try { return JSON.parse(textBody); } catch { return textBody; }

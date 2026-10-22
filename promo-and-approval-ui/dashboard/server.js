@@ -27,6 +27,7 @@ function sendFile(res, folder, name) {
 // Sending (only after Approve) and regenerating (Grok) live in their own folders
 const sending = require("../../sending");
 const { regenerateItem } = require("../../copy-generator/regenerate");
+const { buildNewsletterHtml } = require("../../newsletter/build");
 
 // Read the JSON the browser posted, then run `handler` and reply with JSON
 function handleJson(req, res, handler) {
@@ -75,11 +76,46 @@ http.createServer((req, res) => {
       if (data.approved !== true) throw new Error("Refused: nothing is sent without the lead clicking Approve.");
       let result;
       if (channel === "discord") result = await sending.sendDiscord({ text: data.text, approved: true });
-      else if (channel === "ghost") result = await sending.createGhostDraft({ subject: data.subject, body: data.body, approved: true });
+      else if (channel === "ghost") {
+        // The draft uses aluinn's branded email template, with the lead's edited subject and body
+        const html = buildNewsletterHtml({ subject: data.subject, body: data.body });
+        result = await sending.createGhostDraft({ subject: data.subject, body: data.body, html, approved: true });
+      }
       else throw new Error(`Unknown channel "${channel}".`);
       sending.appendLog({ at: new Date().toISOString(), channel, ok: result.ok, status: result.status, preview: (data.text || data.subject || "").slice(0, 80) });
       return result;
     });
+  }
+  // POST /api/publish-page  — put the event page online, only after the lead approved the page copy.
+  // Body: { approved: true, page_copy: "<the lead's approved text>" }
+  if (req.method === "POST" && url === "/api/publish-page") {
+    return handleJson(req, res, async (data) => {
+      if (data.approved !== true) throw new Error("Refused: nothing is published without the lead clicking Approve.");
+      const args = ["event-page/publish.js", "--approved"];
+      if (data.page_copy) {
+        const copyFile = path.join(require("os").tmpdir(), "event-autopilot-page-copy.txt");
+        fs.writeFileSync(copyFile, data.page_copy);
+        args.push("--page-copy-file=" + copyFile);
+      }
+      const out = await new Promise((resolve) => {
+        require("child_process").execFile("node", args, { cwd: path.join(__dirname, "..", ".."), timeout: 180000 }, (err, stdout, stderr) =>
+          resolve({ err, text: (stdout || "") + (stderr || "") }));
+      });
+      const urlLine = out.text.match(/Published: (\S+)/);
+      if (!urlLine) throw new Error(out.text.trim().split("\n").filter(Boolean).pop() || "Publishing failed.");
+      sending.appendLog({ at: new Date().toISOString(), channel: "event-page", ok: true, status: 200, preview: urlLine[1] });
+      return { ok: true, url: urlLine[1], note: out.text.trim().split("\n").pop() };
+    });
+  }
+  // GET /newsletter/  — preview the branded newsletter email for the current event
+  if (url === "/newsletter" || url === "/newsletter/") {
+    try {
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+      return res.end(buildNewsletterHtml());
+    } catch (err) {
+      res.writeHead(404);
+      return res.end(err.message);
+    }
   }
   // POST /api/share-link  — a pre-filled WhatsApp or LinkedIn message the lead sends by hand
   if (req.method === "POST" && url === "/api/share-link") {
@@ -146,6 +182,7 @@ http.createServer((req, res) => {
   // Only that file is shared from data/ (the rest of data/ stays private).
   if (url.startsWith("/templates/")) return sendFile(res, TEMPLATES_DIR, url.slice("/templates/".length));
   if (url === "/data/digest-sample.json") return sendFile(res, DATA_DIR, "digest-sample.json");
+  if (url === "/data/digest-week.json") return sendFile(res, DATA_DIR, "digest-week.json"); // live week from Luma (digest/fetch-week.js)
   if (url.startsWith("/shared/")) return sendFile(res, SHARED_DIR, url.slice("/shared/".length));
   if (url.startsWith("/output/")) return sendFile(res, OUTPUT_DIR, url.slice("/output/".length));
   sendFile(res, __dirname, url === "/" ? "index.html" : url.slice(1));
