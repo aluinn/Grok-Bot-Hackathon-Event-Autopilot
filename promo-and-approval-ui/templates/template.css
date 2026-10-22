@@ -5,7 +5,7 @@
 body {
   background: #0B0B0F;
   color: #F5F5F7;
-  font-family: "Inter", sans-serif;
+  font-family: "Geist", system-ui, sans-serif;
   display: flex;
   flex-direction: column;
   padding: var(--pad);

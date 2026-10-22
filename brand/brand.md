@@ -12,18 +12,23 @@ Clean, minimal, large type. **No gradients. No shadows.** Dark background with o
 | Text        | `#F5F5F7` | Main text and headings                       |
 | Muted text  | `#9A9AA5` | Secondary text, labels, small print          |
 
-## Fonts (both free from Google Fonts)
+## Fonts (all free from Google Fonts)
 
 - **Headings:** Space Grotesk (weights 500 and 700)
-- **Body text:** Inter (weights 400, 500 and 600)
+- **Body text:** Geist (weights 400, 500 and 600), a sharp, modern interface font
+- **Small labels:** Geist Mono (weights 400 and 500), for tiny technical labels like "PENDING REVIEW", item numbers and image sizes. Used in the website's review area only; the images don't need it.
+
+(The body font was Inter until October 2026. It was replaced with Geist across the website, the images and the newsletter.)
 
 Add this line to the top of any web page or template to load them:
 
 ```html
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 ```
 
-Fallback if the fonts can't load: `sans-serif`.
+Images only use Space Grotesk and Geist, so their templates can leave out `Geist+Mono`.
+
+Fallback if the fonts can't load: `system-ui, sans-serif`.
 
 ## Logo
 
