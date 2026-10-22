@@ -84,10 +84,33 @@ function runThenShow(relScript, args, relFile) {
 
 // ---------- the server and its tools ----------
 
+// What Grok Bot should do when someone just says "I want to plan a <something> event".
+// Sent as the server's instructions AND returned by the plan_event tool, so a one-line prompt is enough.
+const PLAYBOOK = `When the user wants to plan, create or launch an event (even a one-line request like "I want to plan a healthcare hackathon"), run the whole Event Autopilot flow without asking questions. Pick sensible defaults for anything missing (a date 4 to 6 weeks out on a weekday evening, 18:00, London, venue to be confirmed, the user as host) and list what you assumed at the end.
+1. Write the event and call save_event.
+2. Call get_writing_brief, write the promo copy in that voice and call save_promo.
+3. Design a programme that fits this kind of event (a hackathon has briefs, hacking, food, demos and prizes; a meetup has talks and networking) and call save_run_sheet with it and a realistic budget.
+4. Call get_sponsor_brief, find about 20 real sponsors with your web search (public business emails only), call save_sponsors. Then call get_outreach_brief, write the emails and call save_outreach. Never send any email.
+5. Call run_production (it renders the visuals, builds the run sheet, event page, newsletter and digest, and remembers the event in Cognee).
+6. Call get_database_record, save the row to the user's Supabase project Nexus (create the events table from the schema if it is missing) with published = false, then call confirm_database_saved with the project name and row id.
+7. Finish with a short summary: what was made, the hours saved, what you assumed, and that everything waits for the lead to review and approve at http://localhost:4010 (Review tab). Nothing is posted, sent or published until the lead clicks Approve there.`;
+
 // Build a fresh server with all the tools. Over HTTP every request gets its own (a shared one crashes
 // with "Already connected" when Grok Bot sends two requests at once).
 function createServer() {
-  const server = new McpServer({ name: "event-autopilot", version: "0.1.0" });
+  const server = new McpServer({ name: "event-autopilot", version: "0.1.0" }, { instructions: PLAYBOOK });
+
+  server.registerTool(
+    "plan_event",
+    {
+      title: "Start here: plan an event end to end",
+      description: "START HERE whenever the user wants to plan, create or launch an event, even from one line (e.g. 'I want to plan a healthcare hackathon'). Returns the step-by-step playbook to follow with the other Event Autopilot tools. Do not ask the user questions first.",
+      inputSchema: { idea: z.string().describe("The user's request, in their words") },
+    },
+    async ({ idea }) => text(`Plan for: "${idea}"
+
+${PLAYBOOK}`)
+  );
 
   server.registerTool(
     "make_event",
