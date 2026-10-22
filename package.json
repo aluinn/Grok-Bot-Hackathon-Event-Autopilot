@@ -14,7 +14,8 @@
     "sponsors": "node sponsors/find.js",
     "outreach": "node sponsors/draft-outreach.js",
     "dashboard": "node promo-and-approval-ui/dashboard/server.js",
-    "grok-bot": "node grok-bot/server.js"
+    "grok-bot": "node grok-bot/server.js",
+    "grok-bot:http": "node grok-bot/server.js --http 4020"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.1",

@@ -244,10 +244,105 @@ server.registerTool(
   }
 );
 
+// ---------- "Grok Bot is the brain" mode: Grok Bot writes the drafts itself and saves them here ----------
+// With these, Grok Bot needs no xAI API key on our side: it reads the brief, writes, and calls save_*.
+// Everything saved is still a draft for the dashboard; nothing here sends.
+
+const EVENT_KEYS = ["name", "date", "time", "venue", "description", "hosts", "guest_count"];
+
+server.registerTool(
+  "get_writing_brief",
+  {
+    title: "Get the writing brief",
+    description: "Everything Grok Bot needs to write the promo copy itself: the event, the exact JSON shape to produce, the house rules, the community's voice samples and what Cognee remembers. Write the copy, then call save_promo.",
+    inputSchema: {},
+  },
+  async () => {
+    const { SYSTEM, readVoiceSamples, longDate } = require("../copy-generator/generate");
+    const { recall } = require("../memory/cognee");
+    const event = JSON.parse(readIfExists(FILES.event) || "null");
+    if (!event) return text("There is no event yet. Call make_event (Luma link) or save_event (from a one-line idea) first.");
+    let memory = "";
+    try { memory = await recall(`How does this community write its event posts and newsletters? Tone, length, phrases, sign-offs, with examples. Next event: "${event.name}".`); } catch { /* memory is optional */ }
+    const voice = readVoiceSamples();
+    return text([
+      "RULES AND OUTPUT SHAPE:\n" + SYSTEM,
+      "EVENT:\n" + JSON.stringify({ ...event, date_long: longDate(event.date) }, null, 2),
+      memory ? "WHAT COGNEE REMEMBERS ABOUT THIS COMMUNITY'S VOICE:\n" + memory : "",
+      voice ? "VOICE SAMPLES:\n" + voice : "No voice samples given; use a friendly, plain tone.",
+      "When done, call save_promo with the JSON object.",
+    ].filter(Boolean).join("\n\n"));
+  }
+);
+
+server.registerTool(
+  "save_event",
+  {
+    title: "Save the event",
+    description: "Save an event Grok Bot wrote from a one-line idea (or edited) as shared/event.json. Use ISO date YYYY-MM-DD and 24h time HH:MM. Missing venue: 'Venue to be confirmed'.",
+    inputSchema: {
+      name: z.string(), date: z.string(), time: z.string(), venue: z.string(), description: z.string(),
+      hosts: z.array(z.string()), guest_count: z.number(),
+    },
+  },
+  async (event) => {
+    const clean = Object.fromEntries(EVENT_KEYS.map((k) => [k, event[k]]));
+    fs.writeFileSync(path.join(repoRoot, FILES.event), JSON.stringify(clean, null, 2) + "\n");
+    return text(`Saved shared/event.json: "${clean.name}" on ${clean.date} at ${clean.time}, ${clean.venue}. Next: get_writing_brief, then save_promo; render_visuals; build_run_sheet.`);
+  }
+);
+
+server.registerTool(
+  "save_promo",
+  {
+    title: "Save the promo copy",
+    description: "Save the copy Grok Bot wrote as shared/promo.json (a draft the lead approves in the dashboard). Shape: page_copy, newsletter {subject, body}, posts {linkedin, whatsapp, discord}.",
+    inputSchema: {
+      page_copy: z.string(),
+      newsletter: z.object({ subject: z.string(), body: z.string() }),
+      posts: z.object({ linkedin: z.string(), whatsapp: z.string(), discord: z.string() }),
+    },
+  },
+  async (promo) => {
+    const clean = {
+      page_copy: promo.page_copy,
+      newsletter: { subject: promo.newsletter.subject, body: promo.newsletter.body },
+      posts: { linkedin: promo.posts.linkedin, whatsapp: promo.posts.whatsapp, discord: promo.posts.discord },
+    };
+    fs.writeFileSync(path.join(repoRoot, FILES.promo), JSON.stringify(clean, null, 2) + "\n");
+    const event = JSON.parse(readIfExists(FILES.event) || "{}");
+    const all = Object.values(clean.posts).concat(clean.page_copy, clean.newsletter.body).join("\n");
+    const warnings = [];
+    if (event.venue && !all.includes(String(event.venue).split(",")[0])) warnings.push("the venue name is missing from some copy");
+    if (event.time && !all.includes(event.time)) warnings.push(`the time ${event.time} is not written anywhere`);
+    return text("Saved shared/promo.json with 5 drafts for the lead to review in the dashboard." + (warnings.length ? " Worth checking: " + warnings.join("; ") + "." : ""));
+  }
+);
+
+// ---------- start ----------
+// Two ways to run:
+//   node grok-bot/server.js            -> stdio, for a client on this computer (Claude Code, Cursor)
+//   node grok-bot/server.js --http 4020 -> HTTP on that port, for a cloud client such as Grok Bot
+//                                          (expose it with: cloudflared tunnel --url http://localhost:4020)
 async function main() {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-  console.error("Event Autopilot MCP server ready (stdio). It never sends anything.");
+  const httpIndex = process.argv.indexOf("--http");
+  if (httpIndex === -1) {
+    const transport = new StdioServerTransport();
+    await server.connect(transport);
+    console.error("Event Autopilot MCP server ready (stdio). It never sends anything.");
+    return;
+  }
+  const port = Number(process.argv[httpIndex + 1]) || 4020;
+  const http = require("http");
+  const { StreamableHTTPServerTransport } = require("@modelcontextprotocol/sdk/server/streamableHttp.js");
+  // Stateless: every request gets a fresh transport, which is the simplest thing that works behind a tunnel
+  http.createServer(async (req, res) => {
+    if (!req.url.startsWith("/mcp")) { res.writeHead(404); return res.end("Event Autopilot MCP server: use /mcp"); }
+    const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+    res.on("close", () => transport.close());
+    await server.connect(transport);
+    await transport.handleRequest(req, res);
+  }).listen(port, () => console.error(`Event Autopilot MCP server ready at http://localhost:${port}/mcp. It never sends anything.`));
 }
 
 main().catch((err) => {

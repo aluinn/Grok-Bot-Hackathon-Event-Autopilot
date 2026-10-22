@@ -90,4 +90,9 @@ async function main() {
   if (warnings.length) console.log("Worth checking: " + warnings.join("; ") + ".");
 }
 
-main().catch((err) => { console.log("Could not write the promo copy. " + err.message); process.exit(1); });
+// Run only when started from the command line; other code (the Grok Bot server) just borrows the pieces
+if (require.main === module) {
+  main().catch((err) => { console.log("Could not write the promo copy. " + err.message); process.exit(1); });
+}
+
+module.exports = { SYSTEM, readVoiceSamples, longDate };
