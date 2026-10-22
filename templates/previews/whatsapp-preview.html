@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<!-- A WhatsApp-style group chat showing a post as a green message bubble. Standalone: all styling and code is in this one file.
+     Plain CSS imitating the look of a chat (no logos, no copied artwork). It never sends anything anywhere.
+     Data: window.POSTS (object with linkedin / whatsapp / discord text), otherwise ../../data/promo.json -> posts.
+     Optional: window.IMAGE_URL (event image), window.GROUP_NAME, window.TIME. See templates/previews/README.md. -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WhatsApp-style post preview</title>
+  <style>
+    /* Flat on purpose (no shadows, no gradients), like the rest of Event Autopilot */
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #0B141A; color: #E9EDEF; font-family: "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+
+    .phone { max-width: 420px; min-height: 440px; margin: 0 auto; display: flex; flex-direction: column; background: #0B141A; }
+
+    /* Top bar: group picture, name */
+    .bar { display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: #202C33; }
+    .avatar { flex: none; width: 40px; height: 40px; border-radius: 50%; background: #6A7175; color: #E9EDEF; display: grid; place-items: center; font-size: 17px; font-weight: 500; }
+    .title { font-size: 16px; font-weight: 500; line-height: 20px; overflow-wrap: anywhere; }
+    .sub { font-size: 13px; line-height: 17px; color: #8696A0; }
+
+    .chat { flex: 1; padding: 14px 12px 24px; }
+    .day { width: max-content; margin: 0 auto 12px; padding: 5px 12px; border-radius: 8px; background: #182229; color: #8696A0; font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.3px; }
+
+    /* Your message: the green bubble, with a small tail at the top right */
+    .bubble { position: relative; width: fit-content; max-width: 86%; margin: 0 8px 0 auto; padding: 4px 4px 6px; background: #005C4B; border-radius: 8px 0 8px 8px; }
+    .bubble::after { content: ""; position: absolute; top: 0; right: -8px; border-top: 8px solid #005C4B; border-right: 8px solid transparent; }
+    .media { display: block; width: 100%; height: auto; margin-bottom: 4px; border-radius: 6px; }
+    .media[hidden] { display: none; }
+    .text { padding: 2px 6px 0; font-size: 14.2px; line-height: 19px; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; }
+    .text.empty { color: rgba(233, 237, 239, 0.6); font-style: italic; }
+    .text strong { font-weight: 700; }
+    .link { color: #53BDEB; }
+    .foot { display: flex; justify-content: flex-end; align-items: center; gap: 4px; padding: 3px 6px 0 0; font-size: 11px; line-height: 14px; color: rgba(233, 237, 239, 0.6); }
+    .ticks { width: 17px; height: 12px; fill: none; stroke: #53BDEB; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* Bottom bar (decoration only) */
+    .input { padding: 8px 12px; background: #202C33; }
+    .input div { padding: 10px 16px; border-radius: 22px; background: #2A3942; color: #8696A0; font-size: 15px; }
+  </style>
+</head>
+<body>
+  <div class="phone">
+    <div class="bar">
+      <span class="avatar" id="avatar"></span>
+      <div><div class="title" id="group"></div><div class="sub">Group chat</div></div>
+    </div>
+
+    <div class="chat">
+      <div class="day">Today</div>
+      <div class="bubble" id="bubble">
+        <img class="media" id="media" alt="" hidden>
+        <div class="text" id="text"></div>
+        <div class="foot"><span id="time"></span>
+          <svg class="ticks" viewBox="0 0 18 12" aria-hidden="true"><path d="M1 6.5l3.5 3.5L11 2"/><path d="M7 9.5l1 1L15 2"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="input" aria-hidden="true"><div>Message</div></div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const state = {}; // what is being shown right now (post, imageUrl, groupName, time)
+
+    // Make any text safe to place in the page (a stray < can never break it)
+    function esc(text) {
+      return String(text == null ? "" : text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    }
+
+    // WhatsApp's own formatting: *bold*, _italic_, ~strikethrough~. Web addresses get the blue look (not clickable).
+    function format(text) {
+      return esc(text)
+        .replace(/(https?:\/\/[^\s<]*[^\s<.,!?;:)'"])/g, '<span class="link">$1</span>')
+        .replace(/(^|[\s(])\*([^*\n]+)\*(?=$|[\s.,!?;:)])/g, "$1<strong>$2</strong>")
+        .replace(/(^|[\s(])_([^_\n]+)_(?=$|[\s.,!?;:)])/g, "$1<em>$2</em>")
+        .replace(/(^|[\s(])~([^~\n]+)~(?=$|[\s.,!?;:)])/g, "$1<s>$2</s>");
+    }
+
+    // Show (or update) the preview. Anything you leave out keeps its previous value.
+    // options: post, posts, imageUrl, groupName, time
+    function renderPreview(options) {
+      const opts = options || {};
+      if (opts.message === undefined && (opts.post !== undefined || opts.posts)) state.message = ""; // a new post replaces any old error note
+      Object.assign(state, opts);
+      if (opts.posts && opts.post === undefined) state.post = opts.posts.whatsapp;
+
+      const group = String(state.groupName || window.GROUP_NAME || "Community group").trim();
+      $("avatar").textContent = group[0].toUpperCase();
+      $("group").textContent = group;
+      $("time").textContent = state.time || window.TIME || new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+
+      const post = String(state.post == null ? "" : state.post).trim();
+      const text = $("text");
+      text.className = "text" + (post ? "" : " empty");
+      if (post) text.innerHTML = format(post);
+      else text.textContent = state.message || "No post written yet.";
+
+      const media = $("media");
+      const url = state.imageUrl === undefined ? window.IMAGE_URL : state.imageUrl;
+      if (url) { media.hidden = false; media.src = url; } else { media.hidden = true; media.removeAttribute("src"); }
+      media.onerror = () => { media.hidden = true; settle(); };
+      media.onload = settle;
+      if (!url) settle();
+    }
+    window.renderPreview = renderPreview;
+
+    // Tell whoever embeds this page (in an iframe) how tall it is, and say when it is ready to photograph
+    function reportHeight() {
+      if (window.parent !== window) window.parent.postMessage({ type: "preview-height", height: Math.ceil(document.documentElement.scrollHeight) }, "*");
+    }
+    function settle() { reportHeight(); document.body.setAttribute("data-ready", "yes"); }
+    new ResizeObserver(reportHeight).observe(document.body);
+
+    // A page that embeds this one can send:  frame.contentWindow.postMessage({ type: "preview-update", post: "..." }, "*")
+    window.addEventListener("message", (e) => { if (e.data && e.data.type === "preview-update") renderPreview(e.data); });
+
+    async function getJson(path) { const r = await fetch(path); if (!r.ok) throw new Error(path + " (" + r.status + ")"); return r.json(); }
+
+    async function start() {
+      // Inside an iframe we wait for the embedding page's message instead of reading the files.
+      // Anything already given to us (by a message or window.POSTS) wins over the fallback files.
+      const embedded = window.parent !== window;
+      const needPosts = state.post === undefined;
+      const [posts] = await Promise.all([
+        !needPosts ? null
+          : window.POSTS ? Promise.resolve(window.POSTS)
+          : embedded ? Promise.resolve(null) : getJson("../../data/promo.json").then((json) => json.posts).catch(() => null)
+      ]);
+      const opts = {};
+      if (needPosts && state.post === undefined) {
+        opts.post = posts ? posts.whatsapp : "";
+        if (!posts && !embedded) opts.message = "Couldn't load data/promo.json. Pass a post with window.POSTS or a message (see templates/previews/README.md).";
+      }
+      renderPreview(opts);
+    }
+    if (document.readyState === "complete") start(); else window.addEventListener("load", start);
+  </script>
+</body>
+</html>

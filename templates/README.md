@@ -14,6 +14,8 @@ There are also two **weekly digest** templates ("This week's events"): an email-
 
 And a **branded email newsletter** for a single event (built from the newsletter text in `promo.json`): see [NEWSLETTER-README.md](NEWSLETTER-README.md).
 
+And **post previews** (how a post will look on LinkedIn, WhatsApp and Discord), ready to embed in the UI: see [previews/README.md](previews/README.md).
+
 ## The data contract (what the templates read)
 
 The templates show the event in `data/event.json`. These are the fields they use:

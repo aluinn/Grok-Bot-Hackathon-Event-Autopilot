@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<!-- A LinkedIn-style feed card showing a post as it will look. Standalone: all styling and code is in this one file.
+     Plain CSS imitating the look of a feed card (no logos, no copied artwork). It never posts anything anywhere.
+     Data: window.POSTS (object with linkedin / whatsapp / discord text), otherwise ../../data/promo.json -> posts.
+     Optional: window.IMAGE_URL (event image), window.AUTHOR_NAME, window.AUTHOR_HEADLINE. See templates/previews/README.md. -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LinkedIn-style post preview</title>
+  <style>
+    /* Flat on purpose (no shadows, no gradients), like the rest of Event Autopilot */
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 24px 16px; background: #F4F2EE; color: rgba(0, 0, 0, 0.9); font-family: -apple-system, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+
+    .card { max-width: 552px; margin: 0 auto; background: #FFFFFF; border: 1px solid rgba(0, 0, 0, 0.15); border-radius: 8px; overflow: hidden; }
+
+    .head { display: flex; gap: 8px; padding: 12px 16px 0; }
+    .avatar { flex: none; width: 48px; height: 48px; border-radius: 50%; background: #44546A; color: #FFFFFF; display: grid; place-items: center; font-size: 18px; font-weight: 600; }
+    .who { flex: 1; min-width: 0; }
+    .name { font-size: 14px; font-weight: 600; line-height: 20px; overflow-wrap: anywhere; }
+    .meta { font-size: 12px; line-height: 16px; color: rgba(0, 0, 0, 0.6); overflow-wrap: anywhere; }
+    .more { flex: none; color: rgba(0, 0, 0, 0.6); font-size: 18px; line-height: 20px; letter-spacing: 1px; }
+
+    .text { padding: 12px 16px; font-size: 14px; line-height: 20px; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; }
+    .text.empty { color: rgba(0, 0, 0, 0.45); font-style: italic; }
+    .tag { color: #0A66C2; font-weight: 600; }
+    .link { color: #0A66C2; }
+
+    .media { display: block; width: 100%; height: auto; margin: 4px 0 0; border-top: 1px solid rgba(0, 0, 0, 0.08); border-bottom: 1px solid rgba(0, 0, 0, 0.08); }
+    .media[hidden] { display: none; }
+
+    .actions { display: flex; justify-content: space-around; padding: 4px 8px; border-top: 1px solid rgba(0, 0, 0, 0.08); }
+    .media:not([hidden]) + .actions { border-top: none; }
+    .act { display: flex; align-items: center; gap: 6px; padding: 12px 8px; font-size: 14px; font-weight: 600; color: rgba(0, 0, 0, 0.6); }
+    .act svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    @media (max-width: 380px) { .act span { display: none; } }
+  </style>
+</head>
+<body>
+  <article class="card" id="card">
+    <div class="head">
+      <span class="avatar" id="avatar"></span>
+      <div class="who">
+        <div class="name" id="name"></div>
+        <div class="meta" id="headline"></div>
+        <div class="meta">Just now</div>
+      </div>
+      <span class="more" aria-hidden="true">&middot;&middot;&middot;</span>
+    </div>
+
+    <div class="text" id="text"></div>
+    <img class="media" id="media" alt="" hidden>
+
+    <div class="actions" aria-hidden="true">
+      <div class="act"><svg viewBox="0 0 24 24"><path d="M7 11v9H4v-9h3zm0 0l4-8a2 2 0 0 1 2 2v4h6a1.5 1.5 0 0 1 1.5 1.8l-1.3 6A2 2 0 0 1 17.3 20H7"/></svg><span>Like</span></div>
+      <div class="act"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg><span>Comment</span></div>
+      <div class="act"><svg viewBox="0 0 24 24"><path d="M4 11V9a3 3 0 0 1 3-3h11l-3-3M20 13v2a3 3 0 0 1-3 3H6l3 3"/></svg><span>Repost</span></div>
+      <div class="act"><svg viewBox="0 0 24 24"><path d="M21 3L3 10l7 3 3 7z"/></svg><span>Send</span></div>
+    </div>
+  </article>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const state = {}; // what is being shown right now (post, imageUrl, authorName, authorHeadline, event)
+
+    // Make any text safe to place in the page (a stray < can never break it)
+    function esc(text) {
+      return String(text == null ? "" : text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    }
+
+    // Turn #hashtags and web addresses into the blue "link" look (they are not clickable: this is only a preview)
+    function format(text) {
+      return esc(text)
+        .replace(/(https?:\/\/[^\s<]*[^\s<.,!?;:)'"])/g, '<span class="link">$1</span>')
+        .replace(/(^|[\s(])(#[\p{L}\p{N}_]+)/gu, '$1<span class="tag">$2</span>');
+    }
+
+    // Show (or update) the preview. Anything you leave out keeps its previous value.
+    // options: post, posts, imageUrl, authorName, authorHeadline, event
+    function renderPreview(options) {
+      const opts = options || {};
+      if (opts.message === undefined && (opts.post !== undefined || opts.posts)) state.message = ""; // a new post replaces any old error note
+      Object.assign(state, opts);
+      if (opts.posts && opts.post === undefined) state.post = opts.posts.linkedin;
+
+      const event = state.event || {};
+      const author = String(state.authorName || window.AUTHOR_NAME || (Array.isArray(event.hosts) && event.hosts[0]) || "Event host").trim();
+      const initials = author.split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase() || "?";
+      $("avatar").textContent = initials;
+      $("name").textContent = author;
+      $("headline").textContent = state.authorHeadline || window.AUTHOR_HEADLINE || "Community organiser";
+
+      const post = String(state.post == null ? "" : state.post).trim();
+      const text = $("text");
+      text.className = "text" + (post ? "" : " empty");
+      if (post) text.innerHTML = format(post);
+      else text.textContent = state.message || "No post written yet.";
+
+      const media = $("media");
+      const url = state.imageUrl === undefined ? window.IMAGE_URL : state.imageUrl;
+      if (url) { media.hidden = false; media.src = url; } else { media.hidden = true; media.removeAttribute("src"); }
+      media.onerror = () => { media.hidden = true; settle(); };
+      media.onload = settle;
+      if (!url) settle();
+    }
+    window.renderPreview = renderPreview;
+
+    // Tell whoever embeds this page (in an iframe) how tall it is, and say when it is ready to photograph
+    function reportHeight() {
+      if (window.parent !== window) window.parent.postMessage({ type: "preview-height", height: Math.ceil(document.documentElement.scrollHeight) }, "*");
+    }
+    function settle() { reportHeight(); document.body.setAttribute("data-ready", "yes"); }
+    new ResizeObserver(reportHeight).observe(document.body);
+
+    // A page that embeds this one can send:  frame.contentWindow.postMessage({ type: "preview-update", post: "..." }, "*")
+    window.addEventListener("message", (e) => { if (e.data && e.data.type === "preview-update") renderPreview(e.data); });
+
+    async function getJson(path) { const r = await fetch(path); if (!r.ok) throw new Error(path + " (" + r.status + ")"); return r.json(); }
+
+    async function start() {
+      // Inside an iframe we wait for the embedding page's message instead of reading the files.
+      // Anything already given to us (by a message or window.POSTS) wins over the fallback files.
+      const embedded = window.parent !== window;
+      const needPosts = state.post === undefined;
+      const [posts, event] = await Promise.all([
+        !needPosts ? null
+          : window.POSTS ? Promise.resolve(window.POSTS)
+          : embedded ? Promise.resolve(null) : getJson("../../data/promo.json").then((json) => json.posts).catch(() => null),
+        state.event !== undefined ? null
+          : window.EVENT ? Promise.resolve(window.EVENT)
+          : embedded ? Promise.resolve(null) : getJson("../../data/event.json").catch(() => null), // optional: only used for the author's name / the embed
+      ]);
+      const opts = {};
+      if (needPosts && state.post === undefined) {
+        opts.post = posts ? posts.linkedin : "";
+        if (!posts && !embedded) opts.message = "Couldn't load data/promo.json. Pass a post with window.POSTS or a message (see templates/previews/README.md).";
+      }
+      if (event && state.event === undefined) opts.event = event;
+      renderPreview(opts);
+    }
+    if (document.readyState === "complete") start(); else window.addEventListener("load", start);
+  </script>
+</body>
+</html>

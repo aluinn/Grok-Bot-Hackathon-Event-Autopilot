@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<!-- A Discord-style message in a dark channel, with an embed card. Standalone: all styling and code is in this one file.
+     Plain CSS imitating the look of a chat channel (no logos, no copied artwork). It never posts anything anywhere.
+     Data: window.POSTS (object with linkedin / whatsapp / discord text), otherwise ../../data/promo.json -> posts.
+     The embed card uses window.EVENT (or ../../data/event.json) and window.IMAGE_URL.
+     Optional: window.AUTHOR_NAME, window.CHANNEL_NAME, window.TIME. See templates/previews/README.md. -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Discord-style post preview</title>
+  <style>
+    /* Flat on purpose (no shadows, no gradients), like the rest of Event Autopilot */
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #313338; color: #DBDEE1; font-family: "gg sans", "Noto Sans", "Helvetica Neue", Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+
+    .app { max-width: 680px; margin: 0 auto; }
+    .channel { display: flex; align-items: center; gap: 8px; height: 48px; padding: 0 16px; border-bottom: 1px solid #26272B; font-size: 16px; font-weight: 600; color: #F2F3F5; }
+    .hash { font-size: 24px; font-weight: 400; color: #80848E; }
+
+    .msg { display: flex; gap: 16px; padding: 18px 16px 22px; }
+    .avatar { flex: none; width: 40px; height: 40px; border-radius: 50%; background: #FF5A1F; color: #000000; display: grid; place-items: center; font-size: 16px; font-weight: 600; }
+    .body { flex: 1; min-width: 0; }
+    .line { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; line-height: 22px; }
+    .user { font-size: 16px; font-weight: 500; color: #F2F3F5; overflow-wrap: anywhere; }
+    .badge { padding: 0 5px; border-radius: 3px; background: #5865F2; color: #FFFFFF; font-size: 10px; font-weight: 600; line-height: 15px; letter-spacing: 0.2px; }
+    .stamp { font-size: 12px; color: #949BA4; }
+
+    .text { font-size: 16px; line-height: 22px; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; }
+    .text.empty { color: #949BA4; font-style: italic; }
+    .text strong { font-weight: 700; }
+    .mention { padding: 0 2px; border-radius: 3px; background: rgba(88, 101, 242, 0.3); color: #C9CDFB; font-weight: 500; }
+    .link { color: #00A8FC; }
+
+    /* The embed card: a dark box with a coloured edge */
+    .embed { max-width: 520px; margin-top: 8px; padding: 8px 16px 16px 12px; background: #2B2D31; border-left: 4px solid #FF5A1F; border-radius: 4px; }
+    .embed[hidden] { display: none; }
+    .etitle { margin-top: 8px; font-size: 16px; font-weight: 600; line-height: 22px; color: #00A8FC; overflow-wrap: anywhere; }
+    .fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px 16px; margin-top: 8px; }
+    .fname { font-size: 14px; font-weight: 600; line-height: 18px; color: #F2F3F5; }
+    .fvalue { font-size: 14px; line-height: 18px; overflow-wrap: anywhere; }
+    .eimg { display: block; max-width: 100%; margin-top: 16px; border-radius: 4px; }
+    .eimg[hidden] { display: none; }
+    .efoot { margin-top: 10px; font-size: 12px; line-height: 16px; color: #B5BAC1; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="channel"><span class="hash">#</span><span id="channel"></span></div>
+
+    <div class="msg">
+      <span class="avatar" id="avatar"></span>
+      <div class="body">
+        <div class="line"><span class="user" id="user"></span><span class="badge">APP</span><span class="stamp" id="stamp"></span></div>
+        <div class="text" id="text"></div>
+
+        <div class="embed" id="embed" hidden>
+          <div class="etitle" id="etitle"></div>
+          <div class="fields" id="fields"></div>
+          <img class="eimg" id="media" alt="" hidden>
+          <div class="efoot">Event Autopilot</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const state = {}; // what is being shown right now (post, imageUrl, authorName, channelName, time, event)
+    const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+    // Make any text safe to place in the page (a stray < can never break it)
+    function esc(text) {
+      return String(text == null ? "" : text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    }
+
+    // Discord's own formatting: **bold**, *italic* and _italic_, @everyone / @here highlighted. Web addresses get the blue look.
+    function format(text) {
+      return esc(text)
+        .replace(/(https?:\/\/[^\s<]*[^\s<.,!?;:)'"])/g, '<span class="link">$1</span>')
+        .replace(/@(everyone|here)\b/g, '<span class="mention">@$1</span>')
+        .replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>")
+        .replace(/(^|[\s(])[*_]([^*_\n]+)[*_](?=$|[\s.,!?;:)])/g, "$1<em>$2</em>");
+    }
+
+    // "2026-11-12" becomes "Thu 12 Nov" (anything that isn't a real date is shown as typed)
+    function shortDate(text) {
+      const d = new Date(String(text) + "T12:00:00");
+      return isNaN(d) ? String(text || "") : DAYS[d.getDay()] + " " + d.getDate() + " " + MONTHS[d.getMonth()];
+    }
+
+    function addField(name, value) {
+      const box = document.createElement("div");
+      const n = document.createElement("div"), v = document.createElement("div");
+      n.className = "fname"; n.textContent = name;
+      v.className = "fvalue"; v.textContent = value;
+      box.append(n, v);
+      $("fields").appendChild(box);
+    }
+
+    // Show (or update) the preview. Anything you leave out keeps its previous value.
+    // options: post, posts, imageUrl, authorName, channelName, time, event
+    function renderPreview(options) {
+      const opts = options || {};
+      if (opts.message === undefined && (opts.post !== undefined || opts.posts)) state.message = ""; // a new post replaces any old error note
+      Object.assign(state, opts);
+      if (opts.posts && opts.post === undefined) state.post = opts.posts.discord;
+
+      const author = String(state.authorName || window.AUTHOR_NAME || "Event Autopilot").trim();
+      const time = state.time || window.TIME || new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+      $("avatar").textContent = author[0].toUpperCase();
+      $("user").textContent = author;
+      $("stamp").textContent = "Today at " + time;
+      $("channel").textContent = String(state.channelName || window.CHANNEL_NAME || "events").trim();
+
+      const post = String(state.post == null ? "" : state.post).trim();
+      const text = $("text");
+      text.className = "text" + (post ? "" : " empty");
+      if (post) text.innerHTML = format(post);
+      else text.textContent = state.message || "No post written yet.";
+
+      // The embed card: the event's details and image (left out entirely if there is neither)
+      const event = state.event || {};
+      const url = state.imageUrl === undefined ? window.IMAGE_URL : state.imageUrl;
+      $("fields").replaceChildren();
+      const when = [event.date ? shortDate(event.date) : "", event.time || ""].filter(Boolean).join(" · ");
+      if (when) addField("When", when);
+      if (event.venue) addField("Where", event.venue);
+      if (Number(event.guest_count) >= 1) addField("Going", String(event.guest_count));
+      $("etitle").textContent = event.name || "";
+      $("etitle").hidden = !event.name;
+      $("fields").hidden = !$("fields").children.length;
+
+      const media = $("media");
+      if (url) { media.hidden = false; media.src = url; } else { media.hidden = true; media.removeAttribute("src"); }
+      media.onerror = () => { media.hidden = true; showEmbed(); settle(); };
+      media.onload = settle;
+      showEmbed();
+      if (!url) settle();
+    }
+    function showEmbed() { $("embed").hidden = $("etitle").hidden && $("fields").hidden && $("media").hidden; }
+    window.renderPreview = renderPreview;
+
+    // Tell whoever embeds this page (in an iframe) how tall it is, and say when it is ready to photograph
+    function reportHeight() {
+      if (window.parent !== window) window.parent.postMessage({ type: "preview-height", height: Math.ceil(document.documentElement.scrollHeight) }, "*");
+    }
+    function settle() { reportHeight(); document.body.setAttribute("data-ready", "yes"); }
+    new ResizeObserver(reportHeight).observe(document.body);
+
+    // A page that embeds this one can send:  frame.contentWindow.postMessage({ type: "preview-update", post: "..." }, "*")
+    window.addEventListener("message", (e) => { if (e.data && e.data.type === "preview-update") renderPreview(e.data); });
+
+    async function getJson(path) { const r = await fetch(path); if (!r.ok) throw new Error(path + " (" + r.status + ")"); return r.json(); }
+
+    async function start() {
+      // Inside an iframe we wait for the embedding page's message instead of reading the files.
+      // Anything already given to us (by a message or window.POSTS) wins over the fallback files.
+      const embedded = window.parent !== window;
+      const needPosts = state.post === undefined;
+      const [posts, event] = await Promise.all([
+        !needPosts ? null
+          : window.POSTS ? Promise.resolve(window.POSTS)
+          : embedded ? Promise.resolve(null) : getJson("../../data/promo.json").then((json) => json.posts).catch(() => null),
+        state.event !== undefined ? null
+          : window.EVENT ? Promise.resolve(window.EVENT)
+          : embedded ? Promise.resolve(null) : getJson("../../data/event.json").catch(() => null), // optional: only used for the author's name / the embed
+      ]);
+      const opts = {};
+      if (needPosts && state.post === undefined) {
+        opts.post = posts ? posts.discord : "";
+        if (!posts && !embedded) opts.message = "Couldn't load data/promo.json. Pass a post with window.POSTS or a message (see templates/previews/README.md).";
+      }
+      if (event && state.event === undefined) opts.event = event;
+      renderPreview(opts);
+    }
+    if (document.readyState === "complete") start(); else window.addEventListener("load", start);
+  </script>
+</body>
+</html>
