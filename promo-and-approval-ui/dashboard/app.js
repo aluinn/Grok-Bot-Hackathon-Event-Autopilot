@@ -19,16 +19,18 @@ let event, promo, imageFiles;
 let state = loadState(); // { itemId: { approved, text, subject, body } }
 let editing = null;      // id of the card being edited right now
 
+// Does this person's computer ask for less motion? If so, we skip the 3D scrolling.
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
 // ---------- Saving in the browser ----------
 function loadState() {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch { return {}; }
 }
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch { /* private mode: just don't save */ }
 }
 
 // ---------- The list of cards ----------
-// Each item: id, title, and (for text items) how to read its original text from promo.json
 function getItems() {
   return [
     { id: "page_copy", title: "Event page copy", text: promo.page_copy },
@@ -39,6 +41,9 @@ function getItems() {
     { id: "images", title: "Promo images", isImages: true },
   ];
 }
+function findItem(id) {
+  return getItems().find((i) => i.id === id);
+}
 
 // The current text of an item: the edited version if there is one, otherwise the original
 function current(item) {
@@ -48,25 +53,81 @@ function current(item) {
   }
   return { text: saved.text ?? item.text };
 }
-
 function setState(id, changes) {
   state[id] = { ...state[id], ...changes };
   saveState();
 }
 
-// ---------- Drawing the page ----------
-function render() {
-  const items = getItems();
-  const container = document.getElementById("cards");
-  container.innerHTML = "";
-  items.forEach((item) => container.appendChild(buildCard(item)));
+// ---------- Scroll-in animation ----------
+// When something scrolls into view, add the class "in" and the CSS slides it into place.
+const revealer = new IntersectionObserver((entries) => {
+  entries.forEach((entry) => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add("in");
+      revealer.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.12 });
 
-  // Progress bar
-  const approvedCount = items.filter((i) => state[i.id]?.approved).length;
-  document.getElementById("progress-label").textContent = `${approvedCount} of ${items.length} approved`;
-  const fill = document.getElementById("bar-fill");
-  fill.style.width = `${(approvedCount / items.length) * 100}%`;
-  fill.classList.toggle("done", approvedCount === items.length);
+// ---------- Building the cards (once) ----------
+function buildCards() {
+  const container = document.getElementById("cards");
+  getItems().forEach((item, i) => {
+    const card = document.createElement("article");
+    card.className = "card";
+    card.id = "card-" + item.id;
+    // The top row is built once, so the tick can animate when the card becomes approved
+    card.innerHTML = `
+      <div class="card-top">
+        <span class="num">0${i + 1}</span>
+        <h2>${item.title}</h2>
+        <span class="status">Approved</span>
+        <span class="badge" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+      </div>
+      <div class="card-body"></div>
+      <div class="buttons"></div>`;
+    container.appendChild(card);
+    drawCard(item);
+    revealer.observe(card);
+  });
+}
+
+// Redraw the changing parts of ONE card (its content and buttons). The card itself stays,
+// so colour changes and the tick animate smoothly instead of jumping.
+function drawCard(item) {
+  const card = document.getElementById("card-" + item.id);
+  const approved = !!state[item.id]?.approved;
+  const isEditing = editing === item.id;
+  card.classList.toggle("approved", approved);
+
+  const body = card.querySelector(".card-body");
+  const buttons = card.querySelector(".buttons");
+  body.replaceChildren();
+  buttons.replaceChildren();
+
+  if (item.isImages) body.appendChild(buildImages());
+  else body.appendChild(isEditing ? buildEditor(item) : buildReadOnly(item));
+  body.firstChild.classList.add("fade-in");
+
+  if (isEditing) {
+    buttons.appendChild(button("Save", "approve", () => saveEdit(item)));
+    buttons.appendChild(button("Cancel", "", () => setEditing(null)));
+  } else {
+    buttons.appendChild(button(approved ? "Approved" : "Approve", "approve", () => {
+      setState(item.id, { approved: !approved });
+      drawCard(item);
+      updateProgress();
+    }));
+    // The send buttons only exist once the item is approved (the server refuses otherwise too)
+    if (approved && SEND_LABELS[item.id]) {
+      buttons.appendChild(button(SEND_LABELS[item.id], "send", (e) => sendItem(item, e.target)));
+    }
+    if (!item.isImages) {
+      buttons.appendChild(button("Edit", "", () => setEditing(item.id)));
+      buttons.appendChild(button("Regenerate", "", () => regenerate(item)));
+      buttons.appendChild(button("Copy", "", (e) => copyText(item, e.target)));
+    }
+  }
 }
 
 function button(label, className, onClick) {
@@ -77,56 +138,9 @@ function button(label, className, onClick) {
   return b;
 }
 
-function buildCard(item) {
-  const approved = !!state[item.id]?.approved;
-  const isEditing = editing === item.id;
-
-  const card = document.createElement("article");
-  card.className = "card" + (approved ? " approved" : "");
-  card.id = "card-" + item.id;
-
-  const top = document.createElement("div");
-  top.className = "card-top";
-  top.innerHTML = `<h2>${item.title}</h2>` + (approved ? `<span class="tick">&#10003; Approved</span>` : "");
-  card.appendChild(top);
-
-  // --- Content area ---
-  if (item.isImages) {
-    card.appendChild(buildImages());
-  } else if (isEditing) {
-    card.appendChild(buildEditor(item));
-  } else {
-    card.appendChild(buildReadOnly(item));
-  }
-
-  // --- Buttons ---
-  const buttons = document.createElement("div");
-  buttons.className = "buttons";
-
-  if (isEditing) {
-    buttons.appendChild(button("Save", "approve", () => saveEdit(item)));
-    buttons.appendChild(button("Cancel", "", () => { editing = null; render(); }));
-  } else {
-    buttons.appendChild(button(approved ? "Approved" : "Approve", "approve", () => {
-      setState(item.id, { approved: !approved });
-      render();
-    }));
-    // The send buttons only exist once the item is approved (the server refuses otherwise too)
-    if (approved && SEND_LABELS[item.id]) {
-      buttons.appendChild(button(SEND_LABELS[item.id], "send", (e) => sendItem(item, e.target)));
-    }
-    if (!item.isImages) {
-      buttons.appendChild(button("Edit", "", () => { editing = item.id; render(); }));
-      buttons.appendChild(button("Regenerate", "", () => regenerate(item)));
-      buttons.appendChild(button("Copy", "", (e) => copyText(item, e.target)));
-    }
-  }
-  card.appendChild(buttons);
-  return card;
-}
-
 function buildReadOnly(item) {
   const wrap = document.createElement("div");
+  wrap.className = "panel";
   const c = current(item);
   if (item.id === "newsletter") {
     wrap.innerHTML = `<p class="label">Subject</p><p class="subject"></p><p class="label">Body</p><p class="content"></p>`;
@@ -141,6 +155,7 @@ function buildReadOnly(item) {
 
 function buildEditor(item) {
   const wrap = document.createElement("div");
+  wrap.className = "panel";
   const c = current(item);
   if (item.id === "newsletter") {
     wrap.innerHTML = `<p class="label">Subject</p><input type="text" id="edit-subject"><p class="label">Body</p><textarea id="edit-body"></textarea>`;
@@ -156,6 +171,7 @@ function buildEditor(item) {
 function buildImages() {
   const wrap = document.createElement("div");
   if (imageFiles.length === 0) {
+    wrap.className = "panel";
     wrap.innerHTML = `<p class="content muted">No promo images yet. They appear here once the images have been created.</p>`;
     return wrap;
   }
@@ -183,6 +199,13 @@ function buildImages() {
 }
 
 // ---------- Button actions ----------
+function setEditing(id) {
+  const previous = editing;
+  editing = id;
+  if (previous) drawCard(findItem(previous)); // close any editor that was open
+  if (id) drawCard(findItem(id));
+}
+
 function saveEdit(item) {
   // Changing the text means the lead must look at it again, so approval is cleared
   if (item.id === "newsletter") {
@@ -195,14 +218,22 @@ function saveEdit(item) {
     setState(item.id, { text: document.getElementById("edit-text").value, approved: false });
   }
   editing = null;
-  render();
+  drawCard(item);
+  updateProgress();
 }
 
 function regenerate(item) {
-  // Show a short loading message, then swap in the alternative text
-  const content = document.querySelector(`#card-${item.id} .content`);
-  content.textContent = "Regenerating...";
-  content.classList.add("loading");
+  // Show calm pulsing bars while we "think", then swap in the alternative text
+  const body = document.querySelector(`#card-${item.id} .card-body`);
+  body.innerHTML = `<div class="panel skeleton fade-in"><span></span><span></span><span></span></div>`;
+
+  // Save the new text, un-approve the card (the lead must look again) and redraw it
+  const useText = (alt) => {
+    if (item.id === "newsletter") setState(item.id, { subject: alt.subject, body: alt.body, approved: false });
+    else setState(item.id, { text: alt, approved: false });
+    drawCard(item);
+    updateProgress();
+  };
 
   // Ask Grok (through the server) for a fresh version. If Grok is not set up, fall back to the dummy text.
   const c = current(item);
@@ -214,17 +245,11 @@ function regenerate(item) {
     .then((r) => r.json())
     .then((data) => {
       if (data.error) throw new Error(data.error);
-      const alt = data.result;
-      if (item.id === "newsletter") setState(item.id, { subject: alt.subject, body: alt.body, approved: false });
-      else setState(item.id, { text: alt, approved: false });
-      render();
+      useText(data.result);
     })
     .catch((err) => {
       console.warn("Grok regenerate failed, using the dummy text:", err.message);
-      const alt = DUMMY_ALTERNATIVES[item.id];
-      if (item.id === "newsletter") setState(item.id, { subject: alt.subject, body: alt.body, approved: false });
-      else setState(item.id, { text: alt, approved: false });
-      render();
+      setTimeout(() => useText(DUMMY_ALTERNATIVES[item.id]), 900); // keep the loading bars up briefly so it doesn't flash
     });
 }
 
@@ -270,17 +295,130 @@ function copyText(item, buttonEl) {
   setTimeout(() => (buttonEl.textContent = "Copy"), 1500);
 }
 
+// ---------- Progress ----------
+let lastCount = null;
+function updateProgress() {
+  const items = getItems();
+  const count = items.filter((i) => state[i.id]?.approved).length;
+  document.getElementById("progress-label").textContent = `${count} of ${items.length} approved`;
+
+  const fill = document.getElementById("bar-fill");
+  fill.style.width = `${(count / items.length) * 100}%`;
+  fill.classList.toggle("done", count === items.length);
+
+  // Little "pop" on the number whenever it changes
+  if (lastCount !== null && lastCount !== count) {
+    const box = document.querySelector(".nav-progress");
+    box.classList.remove("pop");
+    void box.offsetWidth; // restart the animation
+    box.classList.add("pop");
+  }
+  lastCount = count;
+
+  document.getElementById("done").classList.toggle("show", count === items.length);
+}
+
+// ---------- The header and the 3D intro ----------
+function prettyDate(date) {
+  const d = new Date(date + "T12:00:00");
+  if (isNaN(d)) return date;
+  return d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+}
+
+function buildHeader() {
+  document.title = event.name + ": Approve";
+  document.getElementById("event-name").textContent = event.name;
+
+  const chips = [
+    [prettyDate(event.date) + (event.time ? " · " + event.time : ""), ""],
+    [event.venue, ""],
+    [event.guest_count + " going", "accent"],
+  ];
+  const box = document.getElementById("event-chips");
+  chips.forEach(([text, extra]) => {
+    const chip = document.createElement("span");
+    chip.className = "chip " + extra;
+    chip.textContent = text;
+    box.appendChild(chip);
+  });
+}
+
+// Put the promo images (or empty placeholders) in the 3D scene, left to right: wide, square, story
+function buildStage() {
+  const stage = document.getElementById("stage");
+  ["wide", "square", "story"].forEach((type) => {
+    const file = imageFiles.find((f) => f.includes(type));
+    const layer = document.createElement("div");
+    layer.className = "layer " + type;
+    if (file) {
+      const img = document.createElement("img");
+      img.src = "/output/" + encodeURIComponent(file);
+      img.alt = "";
+      layer.appendChild(img);
+    } else {
+      layer.innerHTML = `<div class="placeholder">Promo image coming</div>`;
+    }
+    stage.appendChild(layer);
+  });
+}
+
+// As you scroll through the intro, a number "p" goes from 0 (top) to 1 (bottom).
+// We turn it into: images tilt flat, then fly toward you and fade; the title drifts up and fades.
+let targetP = 0, currentP = 0, animating = false;
+
+function readScroll() {
+  const hero = document.getElementById("hero");
+  const range = hero.offsetHeight - window.innerHeight;
+  targetP = Math.min(Math.max(window.scrollY / range, 0), 1);
+  if (!animating) { animating = true; requestAnimationFrame(tick); }
+}
+
+// Each frame, glide a fraction of the way to the target so movement feels smooth, not jumpy
+function tick() {
+  currentP += (targetP - currentP) * 0.12;
+  if (Math.abs(targetP - currentP) < 0.0005) currentP = targetP;
+  applyScene(currentP);
+  if (currentP !== targetP) requestAnimationFrame(tick);
+  else animating = false;
+}
+
+function applyScene(p) {
+  const tilt = 1 - Math.min(p / 0.55, 1); // 1 = fully tilted back, 0 = flat
+  const stage = document.getElementById("stage");
+  stage.style.transform = `rotateX(${55 * tilt}deg) rotateZ(${-16 * tilt}deg) scale(${0.8 + 1.1 * p})`;
+  stage.style.opacity = Math.min(1, Math.max(0, (0.74 - p) / 0.26)); // full until just under halfway, gone by 74%
+
+  // The heading "Everything we made for you" fades in and settles up into place as the images dissolve
+  const arrive = Math.min(1, Math.max(0, (p - 0.58) / 0.22));
+  const end = document.getElementById("hero-end");
+  end.style.opacity = arrive;
+  end.style.transform = `translateY(${(1 - arrive) * 40}px)`;
+
+  const fadeOut = Math.max(0, 1 - p * 2.5);
+  const text = document.getElementById("hero-text");
+  text.style.transform = `translateY(${-p * 140}px)`;
+  text.style.opacity = fadeOut;
+  document.getElementById("scroll-hint").style.opacity = fadeOut;
+}
+
 // ---------- Start up ----------
 async function start() {
   event = await (await fetch("/shared/event.json")).json();
   promo = await (await fetch("/shared/promo.json")).json();
   imageFiles = await (await fetch("/api/images")).json();
 
-  document.title = event.name + ": Approve";
-  document.getElementById("event-name").textContent = event.name;
-  document.getElementById("event-details").textContent =
-    `${event.date} · ${event.venue} · ${event.guest_count} guests`;
-  render();
+  buildHeader();
+  buildStage();
+  buildCards();
+  updateProgress();
+  document.querySelectorAll(".reveal").forEach((el) => revealer.observe(el));
+
+  if (!reduceMotion) {
+    window.addEventListener("scroll", readScroll, { passive: true });
+    window.addEventListener("resize", readScroll);
+    readScroll();
+    applyScene(currentP);
+  }
 }
 
 start();
