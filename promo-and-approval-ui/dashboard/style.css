@@ -60,6 +60,12 @@ h1, h2 { font-family: "Geist", system-ui, sans-serif; font-weight: 600; margin: 
   .tab { text-transform: capitalize; }
   .trust { order: 3; width: 100%; text-align: center; }
 }
+/* Very narrow phones: three tabs plus the logo need a little less padding to stay on one row */
+@media (max-width: 420px) {
+  .brand { font-size: 18px; }
+  .tabs { gap: 2px; }
+  .tab { padding: 7px 9px; }
+}
 
 /* ---------- Intro (3D scroll) ---------- */
 /* The section is 240% of the screen tall. Its inner part stays stuck to the screen while you scroll through it,

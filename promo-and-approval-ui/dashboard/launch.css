@@ -1,0 +1,265 @@
+/* Mission Control (launch.html). Builds on style.css: same colours, fonts, top bar and buttons.
+   Follows aluinn's current style: Geist type, pill buttons, status chips, layered cards. One orange accent, used sparingly. */
+:root {
+  --red: #F2545B;                              /* only for agents that failed */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);  /* fast start, soft landing: used for every state change */
+  --mc-max: 1400px;
+}
+
+::selection { background: var(--accent); color: var(--bg); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.mc-page { font-size: 16px; }
+
+/* ---------- Top bar extra: the live run status pill ---------- */
+.run-pill {
+  display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px;
+  border: 1px solid var(--line); border-radius: 999px;
+  font-family: var(--mono); font-size: 12px; font-weight: 500; letter-spacing: 0.04em; color: var(--muted);
+  white-space: nowrap; transition: color 0.25s, border-color 0.25s;
+}
+.pill-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); transition: background 0.25s; }
+.run-pill[data-state="running"] { color: var(--text); }
+.run-pill[data-state="running"] .pill-dot { background: var(--accent); animation: live 1.2s ease-in-out infinite; }
+.run-pill[data-state="done"] { color: var(--green); border-color: rgba(47, 191, 113, 0.45); }
+.run-pill[data-state="done"] .pill-dot { background: var(--green); }
+.run-pill[data-state="offline"] .pill-dot { background: var(--red); }
+
+/* ---------- Page frame ---------- */
+.mc {
+  max-width: var(--mc-max); margin: 0 auto;
+  padding: calc(var(--nav-h) + clamp(28px, 5vh, 56px)) clamp(16px, 3.5vw, 48px) 96px;
+}
+
+/* ---------- 1. The composer ---------- */
+.mc-title { font-size: clamp(40px, 5.4vw, 76px); line-height: 1.02; letter-spacing: -0.03em; animation: none; max-width: none; text-wrap: balance; }
+.mc-lede { color: var(--muted); font-size: clamp(16px, 1.4vw, 19px); line-height: 1.55; margin: 16px 0 0; max-width: 60ch; }
+
+/* Parts that fold away once a run starts, so the agents get the screen.
+   Folding uses the grid-rows trick: 1fr = open, 0fr = closed. */
+.collapsible { display: grid; grid-template-rows: 1fr; transition: grid-template-rows 0.3s var(--ease-out), opacity 0.2s; }
+.collapsible > div { overflow: hidden; min-height: 0; }
+.is-live .collapsible { grid-template-rows: 0fr; opacity: 0; }
+
+.launch-form { margin-top: 28px; }
+.launch-row {
+  display: flex; align-items: stretch; gap: 8px; padding: 8px;
+  background: var(--card); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 999px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06); /* same faint top edge as the review cards */
+  transition: border-color 0.2s;
+}
+.launch-row:focus-within { border-color: rgba(255, 90, 31, 0.6); }
+input.idea {
+  flex: 1; min-width: 0; margin: 0; height: 60px; padding: 0 18px 0 22px;
+  background: transparent; border: 0; border-radius: 999px;
+  font-size: clamp(17px, 1.6vw, 21px); color: var(--text); caret-color: var(--accent);
+}
+input.idea:focus { outline: none; }
+input.idea::placeholder { color: #7D7D89; }
+
+.launch-btn {
+  height: auto; min-height: 60px; padding: 0 30px; gap: 10px;
+  background: var(--accent); border-color: var(--accent); color: #000;
+  font-size: 18px; font-weight: 600; letter-spacing: -0.01em;
+  box-shadow: 0 4px 18px rgba(255, 90, 31, 0.3); /* the same orange glow as Approve */
+}
+.launch-btn:hover { background: #FF6A33; border-color: #FF6A33; box-shadow: 0 8px 28px rgba(255, 90, 31, 0.45); }
+.launch-btn svg, .production-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: transform 0.2s var(--ease-out); }
+.launch-btn:disabled { background: rgba(255, 255, 255, 0.05); border-color: transparent; color: var(--muted); box-shadow: none; cursor: not-allowed; transform: none; }
+@media (hover: hover) and (pointer: fine) {
+  .launch-btn:not(:disabled):hover svg, .production-btn:not(:disabled):hover svg { transform: translateX(3px); }
+}
+
+.examples { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 14px; }
+.example {
+  height: auto; min-height: 36px; padding: 7px 16px; white-space: normal; text-align: left; line-height: 1.35;
+  font-size: 14px; color: var(--muted); background: transparent;
+}
+.example:hover { color: var(--text); }
+
+.form-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-top: 14px; min-height: 36px; }
+.form-msg { margin: 0; font-size: 14px; color: var(--muted); min-height: 1em; }
+.form-msg.error { color: var(--red); }
+.production-btn { gap: 8px; color: var(--muted); border-color: transparent; padding: 0 10px; font-size: 14px; }
+.production-btn b { color: var(--text); font-weight: 600; }
+.production-btn:hover { background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.12); }
+.production-btn:disabled, .example:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* ---------- 2. Stats band ---------- */
+.stats {
+  display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr) minmax(0, 1fr);
+  margin-top: 36px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+}
+.stat { padding: 22px 0 22px 28px; border-left: 1px solid var(--line); display: flex; flex-direction: column; justify-content: flex-end; gap: 6px; min-width: 0; }
+.stat:first-child { padding-left: 0; border-left: 0; }
+.stat-label { font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.stat-num { font-weight: 600; font-size: clamp(30px, 3vw, 44px); line-height: 1; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.stat-num .of { color: var(--muted); }
+.mc-segs { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 3px; margin-top: 8px; }
+.mc-segs span { height: 4px; border-radius: 2px; background: var(--line); transition: background 0.3s; }
+.mc-segs span.on { background: var(--green); }
+.mc-segs span.err { background: var(--red); }
+
+/* The big number: the one thing the room should read from the back */
+.hours-row { display: flex; align-items: baseline; gap: 16px; min-width: 0; }
+.hours {
+  font-weight: 600; font-size: clamp(56px, 8vw, 116px);
+  line-height: 0.9; letter-spacing: -0.035em; font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.hours-delta { font-family: var(--mono); font-size: 16px; font-weight: 500; color: var(--green); opacity: 0; transform: translateY(6px); transition: opacity 0.25s, transform 0.25s var(--ease-out); }
+.hours-delta.show { opacity: 1; transform: none; }
+
+/* ---------- 3. Finished banner ---------- */
+.finish {
+  display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+  margin-top: 24px; padding: 20px 24px;
+  border: 1px solid rgba(47, 191, 113, 0.5); border-radius: 20px;
+  animation: settle 0.3s var(--ease-out) both;
+}
+.finish[hidden] { display: none; }
+.finish-icon { width: 36px; height: 36px; border-radius: 50%; background: var(--green); display: grid; place-items: center; flex: none; }
+.finish-icon svg { width: 18px; height: 18px; fill: none; stroke: var(--bg); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.finish-text { flex: 1 1 280px; min-width: 0; }
+.finish-text h2 { font-size: 21px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.25; }
+.finish-text p { margin: 4px 0 0; font-size: 14px; color: var(--muted); }
+.finish-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.finish-actions .button { height: 42px; padding: 0 18px; font-size: 15px; }
+.finish-actions .approve { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 600; box-shadow: 0 4px 18px rgba(255, 90, 31, 0.3); }
+.finish-actions .approve:hover { background: #FF6A33; border-color: #FF6A33; box-shadow: 0 8px 28px rgba(255, 90, 31, 0.45); }
+
+/* ---------- 4. The board: one column per wave ---------- */
+.board-wrap { margin-top: 32px; }
+.run-line { margin: 0 0 18px; font-size: 14px; color: var(--muted); overflow-wrap: anywhere; }
+.run-line b { color: var(--text); font-weight: 500; }
+.run-line .tag { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; background: rgba(255, 255, 255, 0.05); border-radius: 999px; padding: 3px 8px; margin-left: 8px; color: var(--muted); }
+
+.board {
+  position: relative;
+  display: grid; grid-template-columns: repeat(var(--waves, 5), minmax(0, 1fr)); gap: 0 36px; align-items: start;
+}
+/* The connector lines sit behind the cards, drawn by launch.js */
+.wires { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; z-index: 0; }
+.wire { fill: none; stroke: var(--line); stroke-width: 1.5; transition: stroke 0.3s; }
+.wire.ready { stroke: #44444F; }
+.wire.done { stroke: rgba(47, 191, 113, 0.45); }
+.wire.live { stroke: var(--accent); stroke-dasharray: 4 6; animation: flow 0.9s linear infinite; }
+.wire.dead { stroke: var(--line); stroke-dasharray: 2 5; }
+
+.wave { position: relative; z-index: 1; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+.wave-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-bottom: 10px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
+.wave-name { font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); transition: color 0.25s; }
+.wave-meta { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.wave.is-running .wave-name { color: var(--text); }
+.wave.is-done .wave-meta { color: var(--green); }
+
+/* ---------- One agent card ---------- */
+.agent {
+  position: relative; overflow: hidden;
+  background: var(--card); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 18px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06); /* the faint top edge from the review cards */
+  padding: 16px;
+  transition: border-color 0.25s, opacity 0.25s, background 0.25s;
+}
+.agent-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.agent-name { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.015em; line-height: 1.3; padding-top: 3px; }
+.agent-summary { margin: 6px 0 0; font-size: 13.5px; line-height: 1.45; color: var(--muted); overflow-wrap: anywhere; }
+.agent-foot { display: flex; justify-content: space-between; gap: 8px; margin-top: 12px; font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.agent-foot:empty { display: none; }
+.agent-saved { color: var(--green); }
+
+/* State chip: the same pill-with-dot as the review page's Waiting / Approved chip */
+.badge {
+  display: inline-flex; align-items: center; gap: 7px; flex: none; padding: 5px 10px 5px 9px; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  font-family: var(--mono); font-size: 10.5px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+  white-space: nowrap; font-variant-numeric: tabular-nums; transition: background 0.25s, color 0.25s;
+}
+.badge-dot { position: relative; width: 7px; height: 7px; border-radius: 50%; background: #5A5A66; flex: none; transition: background 0.25s; }
+.badge-dot svg { display: none; }
+
+/* Running: orange edge, orange chip with a ping, and a thin sweep along the top edge */
+.agent[data-state="running"] { border-color: rgba(255, 90, 31, 0.5); }
+.agent[data-state="running"] .badge { color: #FFB08F; background: rgba(255, 90, 31, 0.12); }
+.agent[data-state="running"] .badge-dot { background: var(--accent); }
+.agent[data-state="running"] .badge-dot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--accent); animation: ping 1.8s ease-out infinite; }
+.agent[data-state="running"]::before {
+  content: ""; position: absolute; top: 0; left: 0; height: 2px; width: 34%; background: var(--accent);
+  animation: sweep 1.6s linear infinite;
+}
+
+/* Done: green chip */
+.agent[data-state="done"] { border-color: rgba(47, 191, 113, 0.3); }
+.agent[data-state="done"] .badge { color: var(--green); background: rgba(47, 191, 113, 0.12); }
+.agent[data-state="done"] .badge-dot { background: var(--green); }
+
+/* Error: red chip, and the note said plainly */
+.agent[data-state="error"] { border-color: rgba(242, 84, 91, 0.5); }
+.agent[data-state="error"] .badge { color: var(--red); background: rgba(242, 84, 91, 0.12); }
+.agent[data-state="error"] .badge-dot { background: var(--red); }
+.agent-error { margin: 10px 0 0; padding: 10px 12px; border-radius: 12px; background: rgba(242, 84, 91, 0.08); border: 1px solid rgba(242, 84, 91, 0.25); color: #FFB3B6; font-size: 13.5px; line-height: 1.45; overflow-wrap: anywhere; }
+
+/* Queued and skipped: quiet. Skipped is dimmed further. */
+.agent[data-state="queued"] .agent-name { color: #C9C9D1; }
+.agent[data-state="skipped"] { opacity: 0.45; background: transparent; border-style: dashed; box-shadow: none; }
+
+/* ---------- Results inside a card ---------- */
+.agent-result:empty { display: none; }
+.agent-result { margin-top: 12px; }
+/* Thumbnails: the first image (usually the wide one) gets a full row, the rest share the row below */
+.shots { display: flex; flex-wrap: wrap; gap: 6px; }
+.shots a { flex: 1 1 0; min-width: 0; }
+.shots a:first-child:nth-last-child(n+2) { flex-basis: 100%; }
+.shots a { display: block; height: 72px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 10px; overflow: hidden; transition: border-color 0.2s; }
+.shots a:first-child:nth-last-child(n+2) { height: 108px; }
+.shots img { width: 100%; height: 100%; display: block; object-fit: contain; padding: 4px; } /* whole image always visible, never cropped */
+.shots a:hover { border-color: #4A4A57; }
+.snippet {
+  margin: 0; padding: 0; border: solid transparent; border-width: 10px 12px; /* a transparent border, not padding, so clipped lines cannot show through */
+  background: rgba(255, 255, 255, 0.03); border-radius: 12px;
+  font-size: 13px; line-height: 1.5; color: #D5D5DC; white-space: pre-line; overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
+  max-height: calc(1.5em * 4 + 20px); /* exactly four lines plus the border */
+}
+.open-link { height: 34px; font-size: 13px; gap: 8px; }
+.open-link svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.reveal { animation: reveal 0.3s var(--ease-out) both; }
+
+/* Wide screens: cards are narrow columns, so the state chip sits above the name instead of squeezing it */
+@media (min-width: 1101px) {
+  .agent-head { flex-direction: column-reverse; align-items: flex-start; gap: 10px; }
+  .agent-name { padding-top: 0; }
+}
+
+/* ---------- Phones and narrow screens: waves stack top to bottom ---------- */
+@media (max-width: 1100px) and (min-width: 761px) {
+  .board { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px 24px; }
+  .wires { display: none; }
+}
+@media (max-width: 760px) {
+  .run-pill { height: 28px; }
+  .board { grid-template-columns: minmax(0, 1fr); gap: 28px; }
+  .wires { display: none; }
+  .launch-row { flex-direction: column; padding: 6px; border-radius: 24px; }
+  input.idea { height: 54px; padding: 0 12px; }
+  .launch-btn { min-height: 52px; width: 100%; }
+  .production-btn { padding: 0 8px; margin-left: -8px; white-space: normal; text-align: left; height: auto; min-height: 36px; }
+  .stats { grid-template-columns: 1fr 1fr; }
+  .stat-hours { grid-column: 1 / -1; padding: 20px 0; border-bottom: 1px solid var(--line); }
+  .stat { padding: 18px 0 18px 18px; }
+  .stat:nth-child(2) { padding-left: 0; border-left: 0; }
+  .finish { padding: 18px; }
+  .finish-actions { width: 100%; }
+  .finish-actions .button { flex: 1; }
+}
+
+/* ---------- Motion ---------- */
+@keyframes live { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+@keyframes sweep { from { transform: translateX(-100%); } to { transform: translateX(300%); } }
+@keyframes flow { to { stroke-dashoffset: -20; } }
+@keyframes reveal { from { opacity: 0; transform: translateY(6px); filter: blur(4px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes settle { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* Reduced motion: states still change, just instantly. No pulsing, sweeping or flowing. */
+@media (prefers-reduced-motion: reduce) {
+  .agent[data-state="running"]::before { display: none; }
+  .collapsible { transition: none; }
+}

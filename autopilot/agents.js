@@ -130,7 +130,7 @@ function buildAgents(input) {
     { id: "runsheet", name: "Run-sheet agent", needs: ["intake"],
       run: script("run-sheet/build.js", [], runsheetSummary) },
 
-    { id: "sponsors", name: "Sponsor research agent (Grok live search)", needs: ["intake"],
+    { id: "sponsors", name: "Sponsor research agent (Grok web search)", needs: ["intake"],
       run: script("sponsors/find.js", ["--count", "20"], sponsorsSummary) },
 
     { id: "copy", name: "Copywriter agent (Grok)", needs: ["intake", "memory"],

@@ -18,7 +18,10 @@ function sendFile(res, folder, name) {
     return res.end("Not found");
   }
   res.writeHead(200, { "Content-Type": TYPES[path.extname(file)] || "application/octet-stream" });
-  fs.createReadStream(file).pipe(res);
+  // If the file vanishes mid-read (e.g. images being re-rendered), answer 404 instead of crashing the server
+  fs.createReadStream(file)
+    .on("error", () => { if (!res.headersSent) res.writeHead(404); res.end(); })
+    .pipe(res);
 }
 
 // Sending (only after Approve) and regenerating (Grok) live in their own folders

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0B0B0F">
+  <link rel="icon" href="data:,">
+  <title>Event Autopilot: Mission Control</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <!-- style.css is the shared look of the whole dashboard (colours, fonts, top bar, buttons).
+       launch.css only adds what this page needs. -->
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/launch.css">
+</head>
+<body class="mc-page">
+  <!-- Top bar: the same one as the Review page, with the Launch tab active -->
+  <nav class="nav">
+    <div class="nav-left">
+      <a class="brand" href="/">Event Autopilot<span class="dot"></span></a>
+      <div class="tabs">
+        <a class="tab active" href="/launch.html" aria-current="page">Launch</a>
+        <a class="tab" href="/">Review</a>
+        <a class="tab" href="/digest.html"><span class="wk">Weekly </span>digest</a>
+      </div>
+    </div>
+    <div class="trust">Nothing is sent until you approve it.</div>
+    <div class="run-pill" id="run-pill" data-state="idle"><span class="pill-dot"></span><span id="run-pill-text">Ready</span></div>
+  </nav>
+
+  <main class="mc">
+    <!-- 1. What the lead types -->
+    <section class="composer" aria-labelledby="mc-title">
+      <h1 class="mc-title" id="mc-title">Launch an event</h1>
+      <div class="collapsible" id="intro">
+        <div>
+          <p class="mc-lede">One line in. Ten agents plan, write and design it while you watch. Everything stays a draft until you approve it.</p>
+        </div>
+      </div>
+
+      <form class="launch-form" id="launch-form" autocomplete="off">
+        <label class="sr-only" for="idea">Describe your event in one line, or paste a Luma link</label>
+        <div class="launch-row">
+          <input id="idea" class="idea" type="text" placeholder="Describe your event in one line, or paste a Luma link" spellcheck="false">
+          <button type="submit" class="launch-btn" id="launch-btn">
+            <span class="launch-label">Launch</span>
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 5.5 15.5 10 11 14.5"/></svg>
+          </button>
+        </div>
+
+        <div class="collapsible" id="extras">
+          <div>
+            <div class="examples" id="examples" aria-label="Examples you can use">
+              <button type="button" class="example">Healthcare Grok Bot hackathon in London, 5 Dec, 6pm</button>
+              <button type="button" class="example">AI founders breakfast in Lisbon, 14 Nov, 8:30am</button>
+              <button type="button" class="example">Climate tech demo night in Berlin, 28 Nov, 7pm</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-foot">
+          <p class="form-msg" id="form-msg" role="status"></p>
+          <button type="button" class="production-btn" id="production-btn">
+            Grok Bot already wrote it? <b>Run production</b>
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 5.5 15.5 10 11 14.5"/></svg>
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- 2. The numbers that climb while the agents work -->
+    <section class="stats" aria-label="Run progress">
+      <div class="stat stat-hours">
+        <span class="stat-label">Volunteer time saved</span>
+        <div class="hours-row">
+          <span class="hours" id="hours">0m</span>
+          <span class="hours-delta" id="hours-delta" aria-hidden="true"></span>
+        </div>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Elapsed</span>
+        <span class="stat-num" id="elapsed">00:00</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Agents done</span>
+        <span class="stat-num"><span id="done-count">0</span><span class="of" id="done-total">/10</span></span>
+        <div class="segs mc-segs" id="segs"></div>
+      </div>
+    </section>
+
+    <!-- 3. Shown once the run has finished -->
+    <section class="finish" id="finish" hidden>
+      <span class="finish-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+      <div class="finish-text">
+        <h2 id="finish-title">Your event is ready to review</h2>
+        <p id="finish-sub">Nothing has been sent. Every item is a draft until you approve it.</p>
+      </div>
+      <div class="finish-actions">
+        <a class="button" href="/event-page/" target="_blank" rel="noopener">Open event page</a>
+        <a class="button approve" href="/">Review and approve</a>
+      </div>
+    </section>
+
+    <!-- 4. The agents, one column per wave. launch.js builds the cards and the connector lines. -->
+    <section class="board-wrap" aria-label="Agents">
+      <p class="run-line" id="run-line">Waiting for a launch. This page also follows runs started from the command line or from Grok Bot.</p>
+      <div class="board" id="board">
+        <svg class="wires" id="wires" aria-hidden="true"></svg>
+      </div>
+    </section>
+  </main>
+
+  <script src="/launch.js"></script>
+</body>
+</html>
