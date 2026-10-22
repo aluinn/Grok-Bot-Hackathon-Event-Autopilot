@@ -43,7 +43,13 @@ Use these in every template and page:
 
 > The brand values above were left blank. Replace each `TODO` with the real value, then delete this note.
 
+## Parts of the project
+
+- **Promo and Approval UI** — the screen where the event lead reviews everything in `promo.json` (page copy, newsletter, LinkedIn/WhatsApp/Discord posts, and the rendered visuals), edits it if needed, and clicks **Approve**. This is the only place where approval happens (see rule 2).
+
 ## Project basics
+
+- Repo: https://github.com/aluinn/Grok-Bot-Hackathon-Event-Autopilot
 
 - License: MIT.
 - Keep the repo easy to understand for first-time contributors.
