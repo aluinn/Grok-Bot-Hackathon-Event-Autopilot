@@ -54,3 +54,7 @@ Use these in every template and page:
 - License: MIT.
 - Keep the repo easy to understand for first-time contributors.
 - Don't commit secrets or API keys. Put them in a `.env` file that is git-ignored.
+
+## Plan
+
+- Who builds what, the timeline and the demo script are in [PLAN.md](PLAN.md).
